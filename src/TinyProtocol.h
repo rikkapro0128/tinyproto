@@ -1,5 +1,5 @@
 /*
-    Copyright 2016-2020 (C) Alexey Dynda
+    Copyright 2016-2021 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -31,3 +31,50 @@
 #include "TinyLightProtocol.h"
 #include "TinyProtocolHdlc.h"
 #include "TinyProtocolFd.h"
+#include "TinyLinkLayer.h"
+
+#include <stdint.h>
+#include <limits.h>
+
+namespace tinyproto
+{
+
+class Proto
+{
+public:
+    Proto(ILinkLayer &link, bool multithread = false);
+
+    ~Proto();
+
+    bool begin(ILinkLayer &link);
+
+#if defined(ARDUINO)
+    bool beginSerial();
+#elif defined(__linux__) || defined(_WIN32)
+    bool beginSerial(char *device);
+#endif
+
+    bool send(const IPacket &message, int timeout);
+
+    bool read(IPacket &message, int timeout);
+
+    bool readZeroCopy(IPacket &message, int timeout);
+
+    void end();
+
+private:
+    uint8_t * m_buffer = nullptr;
+    bool m_allocated = false;
+
+    ILinkLayer *m_link = nullptr;
+    bool m_multithread = false;
+    tiny_events_t m_events{};
+
+    int m_rxQueueSize = 1;
+    IPacket *m_rxQueue = nullptr;
+
+    void init();
+};
+
+}
+

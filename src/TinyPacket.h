@@ -61,6 +61,14 @@ public:
         m_p = 0;
     }
 
+    IPacket(const IPacket &packet)
+    {
+        m_len = packet.m_len;
+        m_size = packet.m_size;
+        m_buf = packet.m_buf;
+        m_p = 0;
+    }
+
     /**
      * Destroys the object
      */
@@ -237,10 +245,18 @@ public:
         return m_buf[idx];
     }
 
+    IPacket& operator=(const IPacket &source)
+    {
+        m_size = source.m_size;
+        m_buf = source.m_buf;
+        return *this;
+    }
+
 private:
     friend class Hdlc;
     friend class IFd;
     friend class Light;
+    friend class Proto;
 
     uint8_t *m_buf;
     int m_size;

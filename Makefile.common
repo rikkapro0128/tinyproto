@@ -72,6 +72,8 @@ OBJ_LIB += \
         src/TinyProtocolHdlc.o \
         src/TinyProtocolFd.o \
         src/TinyLightProtocol.o \
+	src/TinyProtocol.o \
+	src/TinyLinkLayer.o \
 
 prep:
 ifdef CONFIG_FOR_WINDOWS_BUILD
