@@ -69,11 +69,13 @@ OBJ_LIB += \
         src/hal/tiny_list.o \
         src/hal/tiny_types.o \
         src/hal/tiny_serial.o \
+	src/hal/tiny_serial_cpp.o \
         src/TinyProtocolHdlc.o \
         src/TinyProtocolFd.o \
         src/TinyLightProtocol.o \
 	src/TinyProtocol.o \
 	src/TinyLinkLayer.o \
+	src/TinySerial.o \
 
 prep:
 ifdef CONFIG_FOR_WINDOWS_BUILD

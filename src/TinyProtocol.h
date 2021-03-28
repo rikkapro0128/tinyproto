@@ -74,6 +74,14 @@ private:
     IPacket *m_rxQueue = nullptr;
 
     void init();
+
+    void onRead(uint8_t *buf, int len);
+
+    void onSend(uint8_t *buf, int len);
+
+    static void onReadCb(void *udata, uint8_t *buf, int len);
+
+    static void onSendCb(void *udata, uint8_t *buf, int len);
 };
 
 }

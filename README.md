@@ -81,7 +81,7 @@ Do not forget to add TINY_CUSTOM_PLATFORM define to your compilation flags. You 
 
 Usage of light Tiny Protocol in C++ can look like this:
 ```.cpp
-#include "TinyProtocol.h"
+#include "tinyproto.h"
 
 tinyproto::Light  proto;
 tinyproto::Packet<256> packet;
@@ -104,7 +104,7 @@ void loop() {
 
 Example of using full duplex Tiny Protocol in C++ is a little bit bigger, but it is still simple:
 ```.cpp
-#include "TinyProtocol.h"
+#include "tinyproto.h"
 
 tinyproto::Fd<FD_MIN_BUF_SIZE(64,4)>  proto;
 

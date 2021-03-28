@@ -44,7 +44,7 @@ bool Proto::begin(ILinkLayer &link)
     m_link = &link;
     // TODO: Callbacks
 //    m_link->setCallback( );
-    m_link->begin();
+    m_link->begin( onReadCb, onSendCb, this );
     return true;
 }
 
@@ -120,6 +120,28 @@ void Proto::init()
         m_rxQueue[i] = IPacket( (char *)ptr, m_link->getMtu() );
         ptr += m_link->getMtu();
     }
+}
+
+void Proto::onRead(uint8_t *buf, int len)
+{
+    // TODO: Put to queue
+}
+
+void Proto::onSend(uint8_t *buf, int len)
+{
+    // TODO: Remove from queue if any
+}
+
+void Proto::onReadCb(void *udata, uint8_t *buf, int len)
+{
+    Proto * proto = reinterpret_cast<Proto *>(udata);
+    proto->onRead( buf, len );
+}
+
+void Proto::onSendCb(void *udata, uint8_t *buf, int len)
+{
+    Proto * proto = reinterpret_cast<Proto *>(udata);
+    proto->onSend( buf, len );
 }
 
 }

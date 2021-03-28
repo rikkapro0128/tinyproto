@@ -21,17 +21,6 @@
 
 #if defined(ARDUINO)
 
-
-#elif defined(__linux__)
-
-#include "serial/linux_serial.inl"
-
-#elif defined(_WIN32)
-
-#include "serial/win32_serial.inl"
-
-#else
-
-#include "serial/noplatform_serial.inl"
+#include "serial/arduino_serial.inl"
 
 #endif

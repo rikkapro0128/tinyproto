@@ -1,5 +1,5 @@
 /*
-    Copyright 2017,2020-2021 (C) Alexey Dynda
+    Copyright 2017,2020 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -17,21 +17,21 @@
     along with Protocol Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "tiny_serial.h"
+#pragma once
 
-#if defined(ARDUINO)
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
+#include <Arduino.h>
 
-#elif defined(__linux__)
+/// Unique port handle
+typedef HardwareSerial *tiny_serial_handle_t;
 
-#include "serial/linux_serial.inl"
+/** Invalid serial handle definition */
+#define TINY_SERIAL_INVALID (nullptr)
 
-#elif defined(_WIN32)
-
-#include "serial/win32_serial.inl"
-
-#else
-
-#include "serial/noplatform_serial.inl"
-
+#ifdef __cplusplus
+}
 #endif

@@ -17,20 +17,13 @@
     along with Protocol Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/**
- This is Tiny protocol implementation for microcontrollers
-
- @file
- @brief Tiny protocol Arduino API
-
-*/
-
 #pragma once
 
 #include "TinyPacket.h"
 #include "TinyLightProtocol.h"
 #include "TinyProtocolHdlc.h"
 #include "TinyProtocolFd.h"
+#include "TinySerial.h"
 
 #include <stdint.h>
 #include <limits.h>
@@ -47,7 +40,7 @@ public:
 
     virtual void runRx() = 0;
 
-    virtual int runTx() = 0;
+    virtual void runTx() = 0;
 
     virtual int put(void *buf, int size) = 0;
 
@@ -79,43 +72,42 @@ private:
     hdlc_crc_t m_crc = HDLC_CRC_8;
 };
 
-#if defined(ARDUINO)
-template <class S, int Z, int B>
-class SerialLinkLayer: public IFdLinkLayer
+template <int Z, int B>
+class ISerialLinkLayer: public IFdLinkLayer
 {
 public:
-    SerialLinkLayer(int timeout): IFdLinkLayer( m_buffer, Z ), m_timeout( timeout )
+    ISerialLinkLayer(char *dev, int timeout): IFdLinkLayer( m_buffer, Z ), m_timeout( timeout ), m_serial( dev )
     {
     }
 
     void begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) override
     {
         IFdLinkLayer::begin(onReadCb, onSendCb, udata);
-        S.setTimeout( m_timeout );
-        S.begin( m_speed );
+        m_serial.setTimeout( m_timeout );
+        m_serial.begin( m_speed );
     }
 
     void end() override
     {
-        S.end();
+        m_serial.end();
         IFdLinkLayer::end();
     }
 
     void runRx() override
     {
         uint8_t buf[B];
-        int len = S.readBytes(buf, B);
+        int len = m_serial.readBytes(buf, B);
         tiny_fd_on_rx_data( m_handle, buf, len );
     }
 
-    int runTx() override
+    void runTx() override
     {
         uint8_t buf[B];
         int len = tiny_fd_get_tx_data( m_handle, buf, B );
         uint8_t *ptr = buf;
         while (len > 0)
         {
-            int sent = Serial.write(ptr, len);
+            int sent = m_serial.write(ptr, len);
             if ( sent < 0 )
             {
                 break;
@@ -129,7 +121,20 @@ private:
     uint8_t m_buffer[Z]{};
     int m_speed = 115200;
     int m_timeout;
+    tinyproto::Serial m_serial;
 };
+
+#if defined(__linux__) || defined(_WIN32)
+
+class SerialLinkLayer: public ISerialLinkLayer<1000, 128>
+{
+public:
+    SerialLinkLayer( char *dev, int timeout ): ISerialLinkLayer( dev, timeout )
+    {
+    }
+
+};
+
 #endif
 
 }

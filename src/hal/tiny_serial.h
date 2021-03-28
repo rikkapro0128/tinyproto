@@ -36,7 +36,9 @@ extern "C"
      */
 
 #include <stdint.h>
-#if defined(__linux__)
+#if defined(ARDUINO)
+#include "serial/arduino_serial.h"
+#elif defined(__linux__)
 #include "serial/linux_serial.h"
 #elif defined(_WIN32)
 #include "serial/win32_serial.h"
@@ -52,6 +54,7 @@ extern "C"
      * @param name path to the port to open
      *             For linux this can be /dev/ttyO1, /dev/ttyS1, /dev/ttyUSB0, etc.
      *             For windows this can be COM1, COM2, etc.
+     *             For Arduino this is must be pointer to HardwareSerial class
      * @param baud baud rate in bits
      * @return valid serial handle or TINY_SERIAL_INVALID in case of error
      */
