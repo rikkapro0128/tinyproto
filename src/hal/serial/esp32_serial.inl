@@ -1,7 +1,7 @@
 /*
     MIT License
 
-    Copyright (c) 2020, Alexey Dynda
+    Copyright (c) 2021, Alexey Dynda
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -26,12 +26,21 @@
 #include "freertos/task.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
-#include <TinyProtocolFd.h>
-#include <chrono>
+#include <sdkconfig.h>
 #include <stdio.h>
 
 
-#define BUFSIZE  64
+#define BUFSIZE  128
+
+#if defined(CONFIG_TARGET_PLATFORM_ESP8266) || defined(CONFIG_IDF_TARGET_ESP8266) || defined(ESP8266) || defined(__ESP8266__)
+#define ESP8266_DETECTED
+#endif
+
+#if defined(ESP8266_DETECTED)
+#ifndef UART_PIN_NO_CHANGE
+#define UART_PIN_NO_CHANGE (-1)
+#endif
+#endif
 
 void tiny_serial_close(tiny_serial_handle_t port)
 {
@@ -49,14 +58,21 @@ tiny_serial_handle_t tiny_serial_open(const char *name, uint32_t baud)
     {
         handle = UART_NUM_1;
     }
+#if !defined(ESP8266_DETECTED)
     else if ( !strcmp(name, "uart2") )
     {
         handle = UART_NUM_2;
     }
+#endif
     if ( handle < 0 )
     {
         return TINY_SERIAL_INVALID;
     }
+
+    int tx_gpio = UART_PIN_NO_CHANGE;
+    int rx_gpio = UART_PIN_NO_CHANGE;
+    int rts_gpio = UART_PIN_NO_CHANGE;
+    int cts_gpio = UART_PIN_NO_CHANGE;
 
     uart_config_t uart_config = {
         .baud_rate = baud,
@@ -65,27 +81,67 @@ tiny_serial_handle_t tiny_serial_open(const char *name, uint32_t baud)
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
         .rx_flow_ctrl_thresh = 0,
+#if !defined(ESP8266_DETECTED)
         .use_ref_tick = false,
         //        .source_clk = 0, // APB
+#endif
     };
+
+    char *token = strtok( dev, "," );
+    int index = 0;
+    while (token)
+    {
+        int value = strtol( token, NULL, 10 );
+        switch (index)
+        {
+        case 0: tx_gpio = value; break;
+        case 1: rx_gpio = value; break;
+        case 2: rts_gpio = value; break;
+        case 3: cts_gpio = value; break;
+        default: break;
+        }
+        index++;
+        token = strtok( NULL, "," );
+    }
+
     ESP_ERROR_CHECK(uart_param_config(handle, &uart_config));
-    ESP_ERROR_CHECK(
-        uart_set_pin(handle, GPIO_NUM_4 /*TX*/, GPIO_NUM_5 /* RX */, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+    ESP_ERROR_CHECK( uart_set_pin(handle, tx_gpio, rx_gpio, rts_gpio, cts_gpio));
     //                                  uart,   rx size,     tx size, event queue size, queue, flags
-    ESP_ERROR_CHECK(uart_driver_install(handle, BUFSIZE * 2, 0, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_driver_install(handle, BUFSIZE,     0,       0,                NULL,  0));
 
     return handle;
 }
 
 int tiny_serial_send(tiny_serial_handle_t port, const void *buf, int len)
 {
-    return uart_write_bytes(port, (const char *)b, s); }
-    return uart_tx_chars(UART_NUM_1, (const char *)b, s); }
+    return tiny_serial_send_timeout( port, buf, len, 100 );
 }
 
 int tiny_serial_send_timeout(tiny_serial_handle_t port, const void *buf, int len, uint32_t timeout_ms)
 {
-    return -1;
+    const uint8_t *ptr = (const uint8_t *)buf;
+    int sent = 0;
+    TickType_t start_ticks = xTaskGetTickCount();
+    TickType_t ticks_left = (timeout_ms + portTICK_PERIOD_MS / 2) / portTICK_PERIOD_MS;
+    while ( sent < len )
+    {
+         int n = uart_tx_chars( port, (const char *)ptr, len - sent );
+         if ( n < 0 )
+         {
+             break;
+         }
+         sent += n;
+         ptr += n;
+         if ( sent >= len || ticks_left <= 0 )
+         {
+             break;
+         }
+         uart_wait_tx_done( port, ticks_left ); 
+         TickType_t delta = (TickType_t)(xTaskGetTickCount() - start_ticks);
+         ticks_left = delta < ticks_left ? (ticks_left - delta) : 0;
+    }
+//    return uart_write_bytes(port, (const char *)b, s); }
+    return sent;
 }
 
 int tiny_serial_read(tiny_serial_handle_t port, void *buf, int len)
@@ -95,5 +151,5 @@ int tiny_serial_read(tiny_serial_handle_t port, void *buf, int len)
 
 int tiny_serial_read_timeout(tiny_serial_handle_t port, void *buf, int len, uint32_t timeout_ms)
 {
-    return uart_read_bytes(port, (uint8_t *)b, s, timeout_ms / portTICK_RATE_MS); }
+    return uart_read_bytes(port, (uint8_t *)b, s, timeout_ms / portTICK_PERIOD_MS); }
 }

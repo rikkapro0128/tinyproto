@@ -30,6 +30,10 @@
 
 #include "serial/win32_serial.inl"
 
+#elif defined(__XTENSA__)
+
+#include "serial/esp32_serial.inl"
+
 #else
 
 #include "serial/noplatform_serial.inl"

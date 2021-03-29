@@ -42,6 +42,8 @@ extern "C"
 #include "serial/linux_serial.h"
 #elif defined(_WIN32)
 #include "serial/win32_serial.h"
+#elif defined(__XTENSA__)
+#include "serial/esp32_serial.h"
 #else
 #include "serial/noplatform_serial.h"
 #endif
@@ -52,8 +54,12 @@ extern "C"
      * Opens serial port by name
      *
      * @param name path to the port to open
-     *             For linux this can be /dev/ttyO1, /dev/ttyS1, /dev/ttyUSB0, etc.
-     *             For windows this can be COM1, COM2, etc.
+     *             For linux this can be "/dev/ttyO1", "/dev/ttyS1", "/dev/ttyUSB0", etc.
+     *             For windows this can be "COM1", "COM2", etc.
+     *             For ESP32 IDF the line should in format "uart0,tx,rx,rts,cts", where
+     *                   uart0 - uart hardware device number ("uart1", "uart2"); "tx", "rx",
+     *                   "rts", "cts" are optional arguments, specifying integer pin numbers (-1 to use
+     *                   standard pin).
      *             For Arduino this is must be pointer to HardwareSerial class
      * @param baud baud rate in bits
      * @return valid serial handle or TINY_SERIAL_INVALID in case of error
