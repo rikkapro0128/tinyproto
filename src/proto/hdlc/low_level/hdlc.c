@@ -69,12 +69,14 @@ int hdlc_ll_init(hdlc_ll_handle_t *handle, hdlc_ll_init_t *init)
         return TINY_ERR_FAILED;
     }
     *handle = (hdlc_ll_handle_t)init->buf;
-    (*handle)->rx_buf = (uint8_t *)init->buf + sizeof(hdlc_ll_data_t);
+    (*handle)->rx_buf = init->buf + sizeof(hdlc_ll_data_t);
     (*handle)->rx_buf_size = init->buf_size - sizeof(hdlc_ll_data_t);
     (*handle)->crc_type = init->crc_type == HDLC_CRC_OFF ? 0 : init->crc_type;
     (*handle)->on_frame_read = init->on_frame_read;
     (*handle)->on_frame_sent = init->on_frame_sent;
     (*handle)->user_data = init->user_data;
+    (*handle)->phys_mtu = init->mtu ? (init->mtu + get_crc_field_size((*handle)->crc_type)): ((*handle)->rx_buf_size);
+    (*handle)->rx.frame_buf = (*handle)->rx_buf;
 
     // Must be last
     hdlc_ll_reset(*handle, HDLC_LL_RESET_BOTH);
@@ -367,7 +369,7 @@ static int hdlc_ll_read_start(hdlc_ll_handle_t handle, const uint8_t *data, int 
     }
     LOG(TINY_LOG_DEB, "[HDLC:%p] RX: %02X\n", handle, data[0]);
     handle->rx.escape = 0;
-    handle->rx.data = (uint8_t *)handle->rx_buf;
+    handle->rx.data = handle->rx.frame_buf;
     handle->rx.state = hdlc_ll_read_data;
     return 1;
 }
@@ -391,7 +393,7 @@ static int hdlc_ll_read_data(hdlc_ll_handle_t handle, const uint8_t *data, int l
         {
             handle->rx.escape = 1;
         }
-        else if ( handle->rx.data - (uint8_t *)handle->rx_buf < handle->rx_buf_size )
+        else if ( handle->rx.data - handle->rx.frame_buf < handle->phys_mtu )
         {
             if ( handle->rx.escape )
             {
@@ -416,7 +418,7 @@ static int hdlc_ll_read_data(hdlc_ll_handle_t handle, const uint8_t *data, int l
 
 static int hdlc_ll_read_end(hdlc_ll_handle_t handle, const uint8_t *data, int len_bytes)
 {
-    if ( handle->rx.data == handle->rx_buf )
+    if ( handle->rx.data == handle->rx.frame_buf )
     {
         // Impossible, maybe frame alignment is wrong, go to read data again
         LOG(TINY_LOG_WRN, "[HDLC:%p] RX: error in frame alignment, recovering...\n", handle);
@@ -425,8 +427,8 @@ static int hdlc_ll_read_end(hdlc_ll_handle_t handle, const uint8_t *data, int le
         return 0; // That's OK, we actually didn't process anything from user bytes
     }
     handle->rx.state = hdlc_ll_read_start;
-    int len = (int)(handle->rx.data - (uint8_t *)handle->rx_buf);
-    if ( len > handle->rx_buf_size )
+    int len = (int)(handle->rx.data - handle->rx.frame_buf);
+    if ( len > handle->phys_mtu )
     {
         // Buffer size issue, too long packet
         LOG(TINY_LOG_ERR, "[HDLC:%p] RX: tool long frame\n", handle);
@@ -470,22 +472,26 @@ static int hdlc_ll_read_end(hdlc_ll_handle_t handle, const uint8_t *data, int le
         LOG(TINY_LOG_ERR, "[HDLC:%p] RX: WRONG CRC (calc:%08X != %08X)\n", handle, calc_crc, read_crc);
         if ( TINY_LOG_DEB < g_tiny_log_level )
             for ( int i = 0; i < len; i++ )
-                fprintf(stderr, " %c ", (char)((uint8_t *)handle->rx_buf)[i]);
+                fprintf(stderr, " %c ", (char)(handle->rx_buf)[i]);
         LOG(TINY_LOG_DEB, "\n");
         if ( TINY_LOG_DEB < g_tiny_log_level )
             for ( int i = 0; i < len; i++ )
-                fprintf(stderr, " %02X ", ((uint8_t *)handle->rx_buf)[i]);
+                fprintf(stderr, " %02X ", (handle->rx_buf)[i]);
         LOG(TINY_LOG_DEB, "\n-----------\n");
 #endif
         return TINY_ERR_WRONG_CRC;
     }
-    len -= (uint8_t)handle->crc_type / 8;
     // Shift back data pointer, pointing to the last byte after payload
-    handle->rx.data -= (uint8_t)handle->crc_type / 8;
+    len -= (uint8_t)handle->crc_type / 8;
     LOG(TINY_LOG_INFO, "[HDLC:%p] RX: Frame success: %d bytes\n", handle, len);
     if ( handle->on_frame_read )
     {
-        handle->on_frame_read(handle->user_data, handle->rx_buf, len);
+        handle->on_frame_read(handle->user_data, handle->rx.frame_buf, len);
+    }
+    handle->rx.frame_buf += handle->phys_mtu;
+    if ( handle->rx.frame_buf - handle->rx_buf + handle->phys_mtu > handle->rx_buf_size )
+    {
+        handle->rx.frame_buf = handle->rx_buf;
     }
     return TINY_SUCCESS;
 }

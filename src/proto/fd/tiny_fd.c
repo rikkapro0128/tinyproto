@@ -562,9 +562,10 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     _init.on_frame_sent = on_frame_sent;
     _init.user_data = protocol;
     _init.crc_type = init->crc_type;
-    _init.buf_size = hdlc_ll_get_buf_size_ex(protocol->frames.mtu + sizeof(tiny_frame_header_t), init->crc_type);
+    _init.buf_size = (uint8_t *)init->buffer + init->buffer_size - ptr;
     _init.buf = ptr;
-    ptr += _init.buf_size;
+    _init.mtu = init->mtu;
+    ptr += hdlc_ll_get_buf_size_ex(protocol->frames.mtu + sizeof(tiny_frame_header_t), init->crc_type);
     if ( ptr > (uint8_t *)init->buffer + init->buffer_size )
     {
         LOG(TINY_LOG_CRIT, "Out of provided memory: provided %i bytes, used %i bytes\n", init->buffer_size,

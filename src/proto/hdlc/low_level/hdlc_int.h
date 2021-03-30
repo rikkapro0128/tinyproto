@@ -43,6 +43,11 @@ extern "C"
  */
 #define HDLC_MIN_BUF_SIZE(mtu, crc) (sizeof(hdlc_ll_data_t) + (int)(crc) / 8 + (mtu))
 
+/**
+ * Macro calculating buffer size required for specific packet size in bytes, and window
+ */
+#define HDLC_BUF_SIZE_EX(mtu, crc, window) (sizeof(hdlc_ll_data_t) + ((int)(crc) / 8 + (mtu)) * (window))
+
     /**
      * Structure describes configuration of lowest HDLC level
      * Initialize this structure by 0 before passing to hdlc_ll_init()
@@ -78,7 +83,7 @@ extern "C"
         /**
          * Buffer to be used by hdlc level to receive data to
          */
-        void *rx_buf;
+        uint8_t *rx_buf;
 
         /**
          * size of hdlc buffer
@@ -97,11 +102,13 @@ extern "C"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
         /** Parameters in DOXYGEN_SHOULD_SKIP_THIS section should not be modified by a user */
+        int phys_mtu;
         struct
         {
             uint8_t *data;
             int (*state)(hdlc_ll_handle_t handle, const uint8_t *data, int len);
             uint8_t escape;
+            uint8_t *frame_buf;
         } rx;
         struct
         {

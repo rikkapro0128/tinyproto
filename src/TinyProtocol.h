@@ -43,11 +43,15 @@ namespace tinyproto
 class Proto
 {
 public:
-    Proto(ILinkLayer &link, bool multithread = false);
+    Proto(bool multithread = false);
 
     ~Proto();
 
-    bool begin(ILinkLayer &link);
+    void setLink(ILinkLayer &link);
+
+    ILinkLayer &getLink();
+
+    bool begin();
 
 #if defined(ARDUINO)
     bool beginSerial();
@@ -64,17 +68,12 @@ public:
     void end();
 
 private:
-    uint8_t *m_buffer = nullptr;
-    bool m_allocated = false;
-
     ILinkLayer *m_link = nullptr;
     bool m_multithread = false;
+    uint8_t *m_message = nullptr;
+    int len;
+
     tiny_events_t m_events{};
-
-    int m_rxQueueSize = 1;
-    IPacket *m_rxQueue = nullptr;
-
-    void init();
 
     void onRead(uint8_t *buf, int len);
 
@@ -84,5 +83,17 @@ private:
 
     static void onSendCb(void *udata, uint8_t *buf, int len);
 };
+
+class SerialProto: public Proto
+{
+public:
+    SerialProto(char *dev);
+
+    SerialLinkLayer &getLink();
+
+private:
+    SerialLinkLayer m_layer;
+};
+
 
 } // namespace tinyproto

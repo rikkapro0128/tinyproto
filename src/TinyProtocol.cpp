@@ -24,7 +24,8 @@ namespace tinyproto
 
 static tiny_fd_handle_t handle = nullptr;
 
-Proto::Proto(ILinkLayer &link, bool multithread)
+Proto::Proto(bool multithread)
+   : m_link(nullptr)
 {
     // Memory allocation
     //     1. RX queue
@@ -38,9 +39,18 @@ Proto::~Proto()
 {
 }
 
-bool Proto::begin(ILinkLayer &link)
+void Proto::setLink(ILinkLayer &link)
 {
     m_link = &link;
+}
+
+ILinkLayer &Proto::getLink()
+{
+    return *m_link;
+}
+
+bool Proto::begin()
+{
     return m_link->begin(onReadCb, onSendCb, this);
 }
 
@@ -106,18 +116,6 @@ void Proto::end()
     return;
 }
 
-void Proto::init()
-{
-    uint8_t *ptr = m_buffer;
-    m_rxQueue = reinterpret_cast<IPacket *>(ptr);
-    ptr += sizeof(IPacket) * m_rxQueueSize;
-    for ( int i = 0; i < m_rxQueueSize; i++ )
-    {
-        m_rxQueue[i] = IPacket((char *)ptr, m_link->getMtu());
-        ptr += m_link->getMtu();
-    }
-}
-
 void Proto::onRead(uint8_t *buf, int len)
 {
     // TODO: Put to queue
@@ -139,5 +137,25 @@ void Proto::onSendCb(void *udata, uint8_t *buf, int len)
     Proto *proto = reinterpret_cast<Proto *>(udata);
     proto->onSend(buf, len);
 }
+
+
+#if defined(ARDUINO)
+
+#else
+
+SerialProto::SerialProto(char *dev)
+    : Proto()
+    , m_layer( dev )
+{
+    setLink( m_layer );
+}
+
+
+SerialLinkLayer &SerialProto::getLink()
+{
+    return m_layer;
+}
+
+#endif
 
 } // namespace tinyproto

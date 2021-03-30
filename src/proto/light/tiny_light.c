@@ -151,9 +151,11 @@ static int on_frame_read(void *user_data, void *data, int len)
 int tiny_light_read(STinyLightData *handle, uint8_t *pbuf, int len)
 {
     uint32_t ts = tiny_millis();
-    int result = 0;
+    int result = TINY_SUCCESS;
     handle->_hdlc->rx_buf = pbuf;
+    handle->_hdlc->rx.frame_buf = pbuf;
     handle->_hdlc->rx_buf_size = len;
+    handle->_hdlc->phys_mtu = len;
     handle->rx_len = 0;
     do
     {

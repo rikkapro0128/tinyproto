@@ -110,6 +110,9 @@ extern "C"
 
         /** User data, which will be passed to user-defined callback as first argument */
         void *user_data;
+
+        /** mtu size, can be 0 */
+        int mtu;
     } hdlc_ll_init_t;
 
     //------------------------ GENERIC FUNCIONS ------------------------------
