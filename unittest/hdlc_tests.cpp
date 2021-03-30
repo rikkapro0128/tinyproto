@@ -229,11 +229,11 @@ TEST(HDLC, hdlc_ll_missalignment)
     conn.endpoint1().setTimeout(0);
     conn.endpoint2().setTimeout(10);
     TinyHdlcHelper helper2(&conn.endpoint2(), nullptr, nullptr, 1024, HDLC_CRC_OFF);
-    const uint8_t data[] = { 0x7E, 0x7E, 0x01, 0x02, 0x03, 0x7E };
+    const uint8_t data[] = {0x7E, 0x7E, 0x01, 0x02, 0x03, 0x7E};
     conn.endpoint1().write(data, sizeof(data));
 
     helper2.wait_until_rx_count(2, 50); // Never 2 messages should be received, alway exit on timeout 50ms
-    CHECK_EQUAL( 1, helper2.rx_count() );
+    CHECK_EQUAL(1, helper2.rx_count());
 }
 
 TEST(HDLC, hdlc_send_escape_chars_encode)
@@ -241,11 +241,11 @@ TEST(HDLC, hdlc_send_escape_chars_encode)
     FakeConnection conn;
     conn.endpoint1().setTimeout(0);
     conn.endpoint2().setTimeout(10);
-    TinyHdlcHelper helper2( &conn.endpoint2(), nullptr, nullptr, 1024, HDLC_CRC_8 );
-    const uint8_t frame[] = { 0x7E, 0x7D, 0x87 };
+    TinyHdlcHelper helper2(&conn.endpoint2(), nullptr, nullptr, 1024, HDLC_CRC_8);
+    const uint8_t frame[] = {0x7E, 0x7D, 0x87};
     helper2.send(frame, sizeof(frame), 100);
 
-    const uint8_t data[] = { 0x7E, 0x7D, 0x5E, 0x7D, 0x5D, 0x87, 0x7D, 0x5D, 0x7E };
+    const uint8_t data[] = {0x7E, 0x7D, 0x5E, 0x7D, 0x5D, 0x87, 0x7D, 0x5D, 0x7E};
     if ( !conn.endpoint1().wait_until_rx_count(sizeof(data), 50) )
     {
         FAIL("Timeout");
@@ -261,17 +261,16 @@ TEST(HDLC, hdlc_recv_escape_chars_decode)
     conn.endpoint1().setTimeout(0);
     conn.endpoint2().setTimeout(10);
     TinyHdlcHelper helper2(&conn.endpoint2(), nullptr, nullptr, 1024, HDLC_CRC_OFF);
-    const uint8_t data[] = { 0x7E, 0x7D, 0x5E, 0x7D, 0x5D, 0x7E };
+    const uint8_t data[] = {0x7E, 0x7D, 0x5E, 0x7D, 0x5D, 0x7E};
     conn.endpoint1().write(data, sizeof(data));
     // Use single thread recv() implementation, that's why helper2.run( true ) is commented out
     // helper2.run(true);
-    uint8_t frame[] = { 0x7E, 0x7D };
-    uint8_t actual_frame[] = { 0x00, 0x00, 0x00 };
-    int len = helper2.recv( actual_frame, sizeof(actual_frame), 50 );
-    CHECK_EQUAL(sizeof(frame), len );
-    MEMCMP_EQUAL( frame, actual_frame, len);
+    uint8_t frame[] = {0x7E, 0x7D};
+    uint8_t actual_frame[] = {0x00, 0x00, 0x00};
+    int len = helper2.recv(actual_frame, sizeof(actual_frame), 50);
+    CHECK_EQUAL(sizeof(frame), len);
+    MEMCMP_EQUAL(frame, actual_frame, len);
 }
-
 
 TEST(HDLC, hdlc_incomplete_send_on_close)
 {
@@ -280,21 +279,23 @@ TEST(HDLC, hdlc_incomplete_send_on_close)
     conn.endpoint2().setTimeout(10);
     int bytes_sent = 0;
     uint8_t *buffer_sent = nullptr;
-    const uint8_t frame[] = { 0x7E, 0x7D };
+    const uint8_t frame[] = {0x7E, 0x7D};
     {
-        TinyHdlcHelper helper2( &conn.endpoint2(), nullptr,
-                                [&bytes_sent, &buffer_sent](uint8_t *buf, int len) -> void { bytes_sent = len; buffer_sent = buf; } );
+        TinyHdlcHelper helper2(&conn.endpoint2(), nullptr, [&bytes_sent, &buffer_sent](uint8_t *buf, int len) -> void {
+            bytes_sent = len;
+            buffer_sent = buf;
+        });
         helper2.send(frame, sizeof(frame), 0);
     }
-    CHECK_EQUAL( frame, buffer_sent );
-    CHECK_EQUAL( sizeof(frame), bytes_sent );
+    CHECK_EQUAL(frame, buffer_sent);
+    CHECK_EQUAL(sizeof(frame), bytes_sent);
 }
 
 TEST(HDLC, check_buf_size_calculations)
 {
-    CHECK_EQUAL( sizeof(hdlc_ll_data_t) + 14, hdlc_ll_get_buf_size(10) );
-    CHECK_EQUAL( sizeof(hdlc_ll_data_t) + 10, hdlc_ll_get_buf_size_ex(10, HDLC_CRC_OFF) );
-    CHECK_EQUAL( sizeof(hdlc_ll_data_t) + 11, hdlc_ll_get_buf_size_ex(10, HDLC_CRC_8) );
-    CHECK_EQUAL( sizeof(hdlc_ll_data_t) + 12, hdlc_ll_get_buf_size_ex(10, HDLC_CRC_16) );
-    CHECK_EQUAL( sizeof(hdlc_ll_data_t) + 14, hdlc_ll_get_buf_size_ex(10, HDLC_CRC_32) );
+    CHECK_EQUAL(sizeof(hdlc_ll_data_t) + 14, hdlc_ll_get_buf_size(10));
+    CHECK_EQUAL(sizeof(hdlc_ll_data_t) + 10, hdlc_ll_get_buf_size_ex(10, HDLC_CRC_OFF));
+    CHECK_EQUAL(sizeof(hdlc_ll_data_t) + 11, hdlc_ll_get_buf_size_ex(10, HDLC_CRC_8));
+    CHECK_EQUAL(sizeof(hdlc_ll_data_t) + 12, hdlc_ll_get_buf_size_ex(10, HDLC_CRC_16));
+    CHECK_EQUAL(sizeof(hdlc_ll_data_t) + 14, hdlc_ll_get_buf_size_ex(10, HDLC_CRC_32));
 }

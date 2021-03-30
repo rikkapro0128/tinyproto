@@ -32,6 +32,7 @@
 #include "TinyProtocolHdlc.h"
 #include "TinyProtocolFd.h"
 #include "TinyLinkLayer.h"
+#include "TinySerialLinkLayer.h"
 
 #include <stdint.h>
 #include <limits.h>
@@ -63,7 +64,7 @@ public:
     void end();
 
 private:
-    uint8_t * m_buffer = nullptr;
+    uint8_t *m_buffer = nullptr;
     bool m_allocated = false;
 
     ILinkLayer *m_link = nullptr;
@@ -84,5 +85,4 @@ private:
     static void onSendCb(void *udata, uint8_t *buf, int len);
 };
 
-}
-
+} // namespace tinyproto

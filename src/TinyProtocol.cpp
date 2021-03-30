@@ -26,26 +26,22 @@ static tiny_fd_handle_t handle = nullptr;
 
 Proto::Proto(ILinkLayer &link, bool multithread)
 {
-// Memory allocation
-//     1. RX queue
-//     2. TX queue
-//     3. Low level protocol
-//    timeout = 0 for single
-//              xx for multi
+    // Memory allocation
+    //     1. RX queue
+    //     2. TX queue
+    //     3. Low level protocol
+    //    timeout = 0 for single
+    //              xx for multi
 }
 
 Proto::~Proto()
 {
 }
 
-
 bool Proto::begin(ILinkLayer &link)
 {
     m_link = &link;
-    // TODO: Callbacks
-//    m_link->setCallback( );
-    m_link->begin( onReadCb, onSendCb, this );
-    return true;
+    return m_link->begin(onReadCb, onSendCb, this);
 }
 
 #if defined(ARDUINO)
@@ -63,9 +59,9 @@ bool Proto::beginSerial(char *device)
 bool Proto::send(const IPacket &packet, int timeout)
 {
     int result;
-    for (;;)
+    for ( ;; )
     {
-        result = tiny_fd_send_packet( handle, packet.m_buf, packet.m_len );
+        result = tiny_fd_send_packet(handle, packet.m_buf, packet.m_len);
         if ( result == TINY_SUCCESS || timeout <= 0 )
         {
             break;
@@ -82,9 +78,9 @@ bool Proto::send(const IPacket &packet, int timeout)
 bool Proto::read(IPacket &packet, int timeout)
 {
     int result;
-    for (;;)
+    for ( ;; )
     {
-        int bits = tiny_events_wait( &m_events, 1, EVENT_BITS_CLEAR, m_multithread ? timeout: 0);
+        int bits = tiny_events_wait(&m_events, 1, EVENT_BITS_CLEAR, m_multithread ? timeout : 0);
         if ( bits & 1 )
         {
             // TODO: Read from queue
@@ -115,9 +111,9 @@ void Proto::init()
     uint8_t *ptr = m_buffer;
     m_rxQueue = reinterpret_cast<IPacket *>(ptr);
     ptr += sizeof(IPacket) * m_rxQueueSize;
-    for (int i = 0; i < m_rxQueueSize; i++)
+    for ( int i = 0; i < m_rxQueueSize; i++ )
     {
-        m_rxQueue[i] = IPacket( (char *)ptr, m_link->getMtu() );
+        m_rxQueue[i] = IPacket((char *)ptr, m_link->getMtu());
         ptr += m_link->getMtu();
     }
 }
@@ -134,15 +130,14 @@ void Proto::onSend(uint8_t *buf, int len)
 
 void Proto::onReadCb(void *udata, uint8_t *buf, int len)
 {
-    Proto * proto = reinterpret_cast<Proto *>(udata);
-    proto->onRead( buf, len );
+    Proto *proto = reinterpret_cast<Proto *>(udata);
+    proto->onRead(buf, len);
 }
 
 void Proto::onSendCb(void *udata, uint8_t *buf, int len)
 {
-    Proto * proto = reinterpret_cast<Proto *>(udata);
-    proto->onSend( buf, len );
+    Proto *proto = reinterpret_cast<Proto *>(udata);
+    proto->onSend(buf, len);
 }
 
-}
-
+} // namespace tinyproto

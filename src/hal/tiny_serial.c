@@ -21,7 +21,6 @@
 
 #if defined(ARDUINO)
 
-
 #elif defined(__linux__)
 
 #include "serial/linux_serial.inl"

@@ -172,7 +172,7 @@ void onReceiveFrameFd(void *userData, tinyproto::IPacket &pkt)
     }
 }
 
-void onSendFrameFd(void *userData,tinyproto::IPacket &pkt)
+void onSendFrameFd(void *userData, tinyproto::IPacket &pkt)
 {
     if ( !s_runTest )
         fprintf(stderr, ">>> Frame sent payload len=%d\n", (int)pkt.size());

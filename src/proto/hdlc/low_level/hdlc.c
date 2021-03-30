@@ -155,7 +155,7 @@ static int hdlc_ll_send_start(hdlc_ll_handle_t handle)
 static int hdlc_ll_send_data(hdlc_ll_handle_t handle)
 {
     // This commented out code is never reachable because of implementation of hdlc_ll_put() - it check for zero length
-    //if ( handle->tx.len == 0 )
+    // if ( handle->tx.len == 0 )
     //{
     //    LOG(TINY_LOG_DEB, "[HDLC:%p] hdlc_ll_send_crc\n", handle);
     //    handle->tx.state = hdlc_ll_send_crc;

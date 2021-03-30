@@ -20,10 +20,7 @@
 #pragma once
 
 #include "TinyPacket.h"
-#include "TinyLightProtocol.h"
-#include "TinyProtocolHdlc.h"
 #include "TinyProtocolFd.h"
-#include "TinySerial.h"
 
 #include <stdint.h>
 #include <limits.h>
@@ -34,7 +31,7 @@ namespace tinyproto
 class ILinkLayer
 {
 public:
-    virtual void begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) = 0;
+    virtual bool begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) = 0;
 
     virtual void end() = 0;
 
@@ -44,21 +41,55 @@ public:
 
     virtual int put(void *buf, int size) = 0;
 
-    virtual int getMtu() { return INT_MAX; }
+    virtual int getMtu()
+    {
+        return INT_MAX;
+    }
 };
 
 class IFdLinkLayer: public ILinkLayer
 {
 public:
-    IFdLinkLayer(void *buffer, int size, int mtu = 64, int window = 2);
+    IFdLinkLayer(void *buffer, int size);
 
-    void begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) override;
+    ~IFdLinkLayer();
+
+    bool begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) override;
 
     void end() override;
 
     int put(void *buf, int size) override;
 
-    int getMtu() override { return m_mtu; }
+    int getMtu() override
+    {
+        return m_mtu;
+    }
+
+    int getWindow()
+    {
+        return m_window;
+    }
+
+    hdlc_crc_t getCrc()
+    {
+        return m_crc;
+    }
+
+    void setMtu(int mtu)
+    {
+        m_mtu = mtu;
+    }
+
+    void setWindow(int window)
+    {
+        m_window = window;
+    }
+
+    void setBuffer(void *buffer, int size)
+    {
+        m_buffer = reinterpret_cast<uint8_t *>(buffer);
+        m_bufferSize = size;
+    }
 
 protected:
     tiny_fd_handle_t m_handle = nullptr;
@@ -69,73 +100,7 @@ private:
     int m_mtu = 64;
     uint8_t m_window = 2;
     int m_sendTimeout = 100;
-    hdlc_crc_t m_crc = HDLC_CRC_8;
+    hdlc_crc_t m_crc = HDLC_CRC_16;
 };
 
-template <int Z, int B>
-class ISerialLinkLayer: public IFdLinkLayer
-{
-public:
-    ISerialLinkLayer(char *dev, int timeout): IFdLinkLayer( m_buffer, Z ), m_timeout( timeout ), m_serial( dev )
-    {
-    }
-
-    void begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) override
-    {
-        IFdLinkLayer::begin(onReadCb, onSendCb, udata);
-        m_serial.setTimeout( m_timeout );
-        m_serial.begin( m_speed );
-    }
-
-    void end() override
-    {
-        m_serial.end();
-        IFdLinkLayer::end();
-    }
-
-    void runRx() override
-    {
-        uint8_t buf[B];
-        int len = m_serial.readBytes(buf, B);
-        tiny_fd_on_rx_data( m_handle, buf, len );
-    }
-
-    void runTx() override
-    {
-        uint8_t buf[B];
-        int len = tiny_fd_get_tx_data( m_handle, buf, B );
-        uint8_t *ptr = buf;
-        while (len > 0)
-        {
-            int sent = m_serial.write(ptr, len);
-            if ( sent < 0 )
-            {
-                break;
-            }
-            ptr += sent;
-            len -= sent;
-        }
-    }
-
-private:
-    uint8_t m_buffer[Z]{};
-    int m_speed = 115200;
-    int m_timeout;
-    tinyproto::Serial m_serial;
-};
-
-#if defined(__linux__) || defined(_WIN32)
-
-class SerialLinkLayer: public ISerialLinkLayer<1000, 128>
-{
-public:
-    SerialLinkLayer( char *dev, int timeout ): ISerialLinkLayer( dev, timeout )
-    {
-    }
-
-};
-
-#endif
-
-}
-
+} // namespace tinyproto

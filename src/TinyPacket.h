@@ -245,7 +245,7 @@ public:
         return m_buf[idx];
     }
 
-    IPacket& operator=(const IPacket &source)
+    IPacket &operator=(const IPacket &source)
     {
         m_size = source.m_size;
         m_buf = source.m_buf;

@@ -26,8 +26,8 @@ extern "C"
 
 #include <Arduino.h>
 
-/// Unique port handle
-typedef HardwareSerial *tiny_serial_handle_t;
+    /// Unique port handle
+    typedef HardwareSerial *tiny_serial_handle_t;
 
 /** Invalid serial handle definition */
 #define TINY_SERIAL_INVALID (nullptr)

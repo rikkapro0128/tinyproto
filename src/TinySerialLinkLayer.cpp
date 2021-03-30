@@ -17,41 +17,36 @@
     along with Protocol Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#pragma once
-
-#include "hal/tiny_serial.h"
-
-#include <stdint.h>
-#include <limits.h>
+#include "TinySerialLinkLayer.h"
+#include <stdlib.h>
 
 namespace tinyproto
 {
 
-class Serial
+SerialLinkLayer::~SerialLinkLayer()
 {
-public:
-#if defined(ARDUINO)
-    Serial();
-#else
-    Serial(const char *dev);
-#endif
+    if ( m_buffer )
+    {
+        free(m_buffer);
+        m_buffer = nullptr;
+    }
+}
 
-    void setTimeout(int timeoutMs);
+bool SerialLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata)
+{
+    int size = tiny_fd_buffer_size_by_mtu_ex(getMtu(), getWindow(), getCrc());
+    m_buffer = reinterpret_cast<uint8_t *>(malloc(size));
+    setBuffer(m_buffer, size);
+    return ISerialLinkLayer<128>::begin(onReadCb, onSendCb, udata);
+}
 
-    bool begin(int speed);
-
-    void end();
-
-    int readBytes(uint8_t *buf, int len);
-
-    int write(const uint8_t *buf, int len);
-
-private:
-#if !defined(ARDUINO)
-    const char *m_dev;
-#endif
-    tiny_serial_handle_t m_handle = -1;
-    int m_timeoutMs = 0;
-};
+void SerialLinkLayer::end()
+{
+    if ( m_buffer )
+    {
+        free(m_buffer);
+        m_buffer = nullptr;
+    }
+}
 
 } // namespace tinyproto

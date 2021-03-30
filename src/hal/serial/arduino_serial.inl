@@ -27,30 +27,30 @@ void tiny_serial_close(tiny_serial_handle_t port)
 tiny_serial_handle_t tiny_serial_open(const char *name, uint32_t baud)
 {
     tiny_serial_handle_t handle = reinterpret_cast<tiny_serial_handle_t>(name);
-    m_handle->begin( baud );
+    m_handle->begin(baud);
     return handle;
 }
 
 int tiny_serial_send(tiny_serial_handle_t port, const void *buf, int len)
 {
-    port->setTimeout( 100 );
-    return port->write( buf, len );
+    port->setTimeout(100);
+    return port->write(buf, len);
 }
 
 int tiny_serial_send_timeout(tiny_serial_handle_t port, const void *buf, int len, uint32_t timeout_ms)
 {
-    port->setTimeout( timeout_ms );
-    return port->write( buf, len );
+    port->setTimeout(timeout_ms);
+    return port->write(buf, len);
 }
 
 int tiny_serial_read(tiny_serial_handle_t port, void *buf, int len)
 {
-    port->setTimeout( 100 );
-    return port->readBytes( buf, len );
+    port->setTimeout(100);
+    return port->readBytes(buf, len);
 }
 
 int tiny_serial_read_timeout(tiny_serial_handle_t port, void *buf, int len, uint32_t timeout_ms)
 {
-    port->setTimeout( timeout_ms );
-    return port->readBytes( buf, len );
+    port->setTimeout(timeout_ms);
+    return port->readBytes(buf, len);
 }

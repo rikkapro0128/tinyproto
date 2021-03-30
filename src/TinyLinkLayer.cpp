@@ -22,15 +22,17 @@
 namespace tinyproto
 {
 
-IFdLinkLayer::IFdLinkLayer(void *buffer, int size, int mtu, int window)
-   : m_buffer( reinterpret_cast<uint8_t *>(buffer) )
-   , m_bufferSize( size )
-   , m_mtu( mtu )
-   , m_window( window )
+IFdLinkLayer::IFdLinkLayer(void *buffer, int size)
+    : m_buffer(reinterpret_cast<uint8_t *>(buffer))
+    , m_bufferSize(size)
 {
 }
 
-void IFdLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata)
+IFdLinkLayer::~IFdLinkLayer()
+{
+}
+
+bool IFdLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata)
 {
     tiny_fd_init_t init{};
     init.pdata = udata;
@@ -45,7 +47,7 @@ void IFdLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *u
     init.crc_type = m_crc;
     init.mtu = getMtu();
 
-    tiny_fd_init(&m_handle, &init);
+    return tiny_fd_init(&m_handle, &init) == TINY_SUCCESS;
 }
 
 void IFdLinkLayer::end()
@@ -54,6 +56,4 @@ void IFdLinkLayer::end()
     m_handle = nullptr;
 }
 
-
-}
-
+} // namespace tinyproto

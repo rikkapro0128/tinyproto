@@ -75,6 +75,7 @@ OBJ_LIB += \
         src/TinyLightProtocol.o \
 	src/TinyProtocol.o \
 	src/TinyLinkLayer.o \
+	src/TinySerialLinkLayer.o \
 	src/TinySerial.o \
 
 prep:

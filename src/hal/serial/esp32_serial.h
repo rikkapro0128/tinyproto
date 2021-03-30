@@ -26,8 +26,8 @@ extern "C"
 
 #include <stdint.h>
 
-/// Unique port handle
-typedef int tiny_serial_handle_t;
+    /// Unique port handle
+    typedef int tiny_serial_handle_t;
 
 /** Invalid serial handle definition */
 #define TINY_SERIAL_INVALID (-1)

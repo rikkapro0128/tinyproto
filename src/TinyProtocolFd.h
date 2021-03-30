@@ -181,7 +181,7 @@ public:
      * Sets receive callback for incoming messages
      * @param on_receive user callback to process incoming messages. The processing must be non-blocking
      */
-    void setReceiveCallback(void (*on_receive)(void *userData,IPacket &pkt) = nullptr)
+    void setReceiveCallback(void (*on_receive)(void *userData, IPacket &pkt) = nullptr)
     {
         m_onReceive = on_receive;
     };
