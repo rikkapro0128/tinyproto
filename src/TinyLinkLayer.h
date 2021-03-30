@@ -67,7 +67,7 @@ public:
 
     int getWindow()
     {
-        return m_window;
+        return m_txWindow;
     }
 
     hdlc_crc_t getCrc()
@@ -82,7 +82,7 @@ public:
 
     void setWindow(int window)
     {
-        m_window = window;
+        m_txWindow = window;
     }
 
     void setBuffer(void *buffer, int size)
@@ -98,7 +98,7 @@ private:
     uint8_t *m_buffer = nullptr;
     int m_bufferSize = 0;
     int m_mtu = 64;
-    uint8_t m_window = 2;
+    uint8_t m_txWindow = 2;
     int m_sendTimeout = 100;
     hdlc_crc_t m_crc = HDLC_CRC_16;
 };

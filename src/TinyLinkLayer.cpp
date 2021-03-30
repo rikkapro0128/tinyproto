@@ -40,7 +40,7 @@ bool IFdLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *u
     init.on_sent_cb = onSendCb;
     init.buffer = m_buffer;
     init.buffer_size = m_bufferSize;
-    init.window_frames = m_window;
+    init.window_frames = m_txWindow;
     init.send_timeout = m_sendTimeout;
     init.retry_timeout = 200;
     init.retries = 2;

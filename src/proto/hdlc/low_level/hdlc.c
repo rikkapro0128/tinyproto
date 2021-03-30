@@ -532,9 +532,9 @@ int hdlc_ll_get_buf_size(int mtu)
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-int hdlc_ll_get_buf_size_ex(int mtu, hdlc_crc_t crc_type)
+int hdlc_ll_get_buf_size_ex(int mtu, hdlc_crc_t crc_type, int rx_window)
 {
-    return get_crc_field_size(crc_type) + sizeof(hdlc_ll_data_t) + mtu;
+    return (get_crc_field_size(crc_type) + mtu) * rx_window + sizeof(hdlc_ll_data_t);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

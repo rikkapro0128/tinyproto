@@ -84,23 +84,23 @@ private:
     tinyproto::Serial m_serial;
 };
 
-template <int MTU, int WINDOW, int BLOCK> class StaticSerialLinkLayer: public ISerialLinkLayer<BLOCK>
+template <int MTU, int TX_WINDOW, int RX_WINDOW, int BLOCK> class StaticSerialLinkLayer: public ISerialLinkLayer<BLOCK>
 {
 public:
     StaticSerialLinkLayer(char *dev)
-        : ISerialLinkLayer<BLOCK>(dev, this->m_buffer, FD_MIN_BUF_SIZE(MTU, WINDOW))
+        : ISerialLinkLayer<BLOCK>(dev, this->m_buffer, FD_BUF_SIZE_EX(MTU, TX_WINDOW, HDLC_CRC_16, RX_WINDOW))
     {
         this->setMtu(MTU);
-        this->setWindow(WINDOW);
+        this->setWindow(TX_WINDOW);
     }
 
 private:
-    uint8_t m_buffer[FD_MIN_BUF_SIZE(MTU, WINDOW)];
+    uint8_t m_buffer[FD_BUF_SIZE_EX(MTU, TX_WINDOW, HDLC_CRC_16, RX_WINDOW)];
 };
 
 #if defined(ARDUINO)
 
-class SerialLinkLayer: public StaticSerialLinkLayer<16, 2, 4>
+class SerialLinkLayer: public StaticSerialLinkLayer<16, 2, 2, 4>
 {
 public:
     SerialLinkLayer(HardwareSerial *dev)

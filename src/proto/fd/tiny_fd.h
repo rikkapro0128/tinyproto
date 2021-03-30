@@ -231,10 +231,11 @@ extern "C"
      * Returns minimum required buffer size for specified parameters.
      *
      * @param mtu size of desired user payload in bytes.
-     * @param window maximum tx queue size of I-frames.
+     * @param tx_window maximum tx queue size of I-frames.
      * @param crc_type crc type to be used with FD protocol
+     * @param rx_window number of RX ring buffer in frames
      */
-    extern int tiny_fd_buffer_size_by_mtu_ex(int mtu, int window, hdlc_crc_t crc_type);
+    extern int tiny_fd_buffer_size_by_mtu_ex(int mtu, int tx_window, hdlc_crc_t crc_type, int rx_window);
 
     /**
      * @brief returns max packet size in bytes.

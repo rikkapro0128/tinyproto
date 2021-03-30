@@ -39,6 +39,12 @@ extern "C"
        sizeof(((tiny_i_frame_info_t *)0)->user_payload)) *                                                             \
           window))
 
+#define FD_BUF_SIZE_EX(mtu, tx_window, crc, rx_window)                                                                      \
+    ((sizeof(tiny_fd_data_t) + HDLC_BUF_SIZE_EX(mtu + sizeof(tiny_frame_header_t), crc, rx_window) +           \
+      (sizeof(tiny_i_frame_info_t *) + sizeof(tiny_i_frame_info_t) + mtu -                                             \
+       sizeof(((tiny_i_frame_info_t *)0)->user_payload)) *                                                             \
+          tx_window))
+
     typedef enum
     {
         TINY_FD_STATE_DISCONNECTED,

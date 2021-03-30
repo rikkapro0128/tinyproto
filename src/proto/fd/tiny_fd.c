@@ -516,10 +516,10 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
             return TINY_ERR_INVALID_DATA;
         }
     }
-    if ( init->buffer_size < tiny_fd_buffer_size_by_mtu_ex(init->mtu, init->window_frames, init->crc_type) )
+    if ( init->buffer_size < tiny_fd_buffer_size_by_mtu_ex(init->mtu, init->window_frames, init->crc_type, 1) )
     {
         LOG(TINY_LOG_CRIT, "Too small buffer for FD protocol %i < %i\n", init->buffer_size,
-            tiny_fd_buffer_size_by_mtu_ex(init->mtu, init->window_frames, init->crc_type));
+            tiny_fd_buffer_size_by_mtu_ex(init->mtu, init->window_frames, init->crc_type, 1));
         return TINY_ERR_INVALID_DATA;
     }
     if ( init->window_frames > 7 )
@@ -565,7 +565,7 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     _init.buf_size = (uint8_t *)init->buffer + init->buffer_size - ptr;
     _init.buf = ptr;
     _init.mtu = init->mtu;
-    ptr += hdlc_ll_get_buf_size_ex(protocol->frames.mtu + sizeof(tiny_frame_header_t), init->crc_type);
+    ptr += hdlc_ll_get_buf_size_ex(protocol->frames.mtu + sizeof(tiny_frame_header_t), init->crc_type, 1);
     if ( ptr > (uint8_t *)init->buffer + init->buffer_size )
     {
         LOG(TINY_LOG_CRIT, "Out of provided memory: provided %i bytes, used %i bytes\n", init->buffer_size,
@@ -893,20 +893,20 @@ int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *data, int len)
 
 int tiny_fd_buffer_size_by_mtu(int mtu, int window)
 {
-    return tiny_fd_buffer_size_by_mtu_ex(mtu, window, HDLC_CRC_16);
+    return tiny_fd_buffer_size_by_mtu_ex(mtu, window, HDLC_CRC_16, 1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tiny_fd_buffer_size_by_mtu_ex(int mtu, int window, hdlc_crc_t crc_type)
+int tiny_fd_buffer_size_by_mtu_ex(int mtu, int tx_window, hdlc_crc_t crc_type, int rx_window)
 {
     return sizeof(tiny_fd_data_t) +
            // RX side
-           hdlc_ll_get_buf_size_ex(mtu + sizeof(tiny_frame_header_t), crc_type) +
+           hdlc_ll_get_buf_size_ex(mtu + sizeof(tiny_frame_header_t), crc_type, rx_window) +
            // TX side
            (sizeof(tiny_i_frame_info_t *) + sizeof(tiny_i_frame_info_t) + mtu -
             sizeof(((tiny_i_frame_info_t *)0)->user_payload)) *
-               window;
+               tx_window;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

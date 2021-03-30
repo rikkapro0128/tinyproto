@@ -226,9 +226,11 @@ extern "C"
      * Returns minimum buffer size, required to hold hdlc low level data for desired payload size.
      *
      * @param mtu size of desired max payload in bytes
+     * @param crc_type selected crc
+     * @param rx_window number of RX frames in the RX ring buffer
      * @return size of the buffer required
      */
-    int hdlc_ll_get_buf_size_ex(int mtu, hdlc_crc_t crc_type);
+    int hdlc_ll_get_buf_size_ex(int mtu, hdlc_crc_t crc_type, int rx_window);
 
     /**
      * @}
