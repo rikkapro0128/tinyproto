@@ -41,19 +41,24 @@ bool IFdLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *u
     init.buffer = m_buffer;
     init.buffer_size = m_bufferSize;
     init.window_frames = m_txWindow;
-    init.send_timeout = m_sendTimeout;
-    init.retry_timeout = 200;
+    init.send_timeout = getTimeout();
+    init.retry_timeout = 100;
     init.retries = 2;
-    init.crc_type = m_crc;
+    init.crc_type = getCrc();
     init.mtu = getMtu();
-
-    return tiny_fd_init(&m_handle, &init) == TINY_SUCCESS;
+    int result = tiny_fd_init(&m_handle, &init);
+    return result == TINY_SUCCESS;
 }
 
 void IFdLinkLayer::end()
 {
     tiny_fd_close(m_handle);
     m_handle = nullptr;
+}
+
+int IFdLinkLayer::put(void *buf, int size)
+{
+    return tiny_fd_send_packet(m_handle, buf, size);
 }
 
 } // namespace tinyproto

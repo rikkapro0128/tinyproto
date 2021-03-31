@@ -29,7 +29,7 @@ Serial::Serial(const char *dev)
 {
 }
 
-void Serial::setTimeout(int timeoutMs)
+void Serial::setTimeout(uint32_t timeoutMs)
 {
     m_timeoutMs = timeoutMs;
 }
@@ -62,7 +62,7 @@ Serial::Serial(char *dev)
 {
 }
 
-void Serial::setTimeout(int timeoutMs)
+void Serial::setTimeout(uint32_t timeoutMs)
 {
 }
 

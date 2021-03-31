@@ -53,17 +53,9 @@ public:
 
     bool begin();
 
-#if defined(ARDUINO)
-    bool beginSerial();
-#elif defined(__linux__) || defined(_WIN32)
-    bool beginSerial(char *device);
-#endif
+    bool send(const IPacket &message, uint32_t timeout);
 
-    bool send(const IPacket &message, int timeout);
-
-    bool read(IPacket &message, int timeout);
-
-    bool readZeroCopy(IPacket &message, int timeout);
+    bool read(IPacket &message, uint32_t timeout);
 
     void end();
 
@@ -71,7 +63,7 @@ private:
     ILinkLayer *m_link = nullptr;
     bool m_multithread = false;
     uint8_t *m_message = nullptr;
-    int len;
+    int m_messageLen;
 
     tiny_events_t m_events{};
 
@@ -84,10 +76,12 @@ private:
     static void onSendCb(void *udata, uint8_t *buf, int len);
 };
 
+
+
 class SerialProto: public Proto
 {
 public:
-    SerialProto(char *dev);
+    SerialProto(char *dev, bool multithread = false);
 
     SerialLinkLayer &getLink();
 

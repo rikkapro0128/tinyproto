@@ -1,5 +1,5 @@
 /*
-    Copyright 2019-2020 (C) Alexey Dynda
+    Copyright 2019-2021 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -18,7 +18,7 @@
 */
 
 #include "hal/tiny_serial.h"
-#include "TinyProtocol.h"
+#include "tinyproto.h"
 #include <stdio.h>
 #include <time.h>
 #include <chrono>
@@ -181,34 +181,39 @@ void onSendFrameFd(void *userData, tinyproto::IPacket &pkt)
 
 static int run_fd(tiny_serial_handle_t port)
 {
-    s_serialFd = port;
-    tinyproto::FdD proto(tiny_fd_buffer_size_by_mtu(s_packetSize, s_windowSize));
-    proto.enableCrc(s_crc);
+    tinyproto::SerialProto proto( s_port, true );
+    proto.getLink().setMtu( s_packetSize );
+    proto.getLink().setCrc( s_crc );
     // Set window size to 4 frames. This should be the same value, used by other size
-    proto.setWindowSize(s_windowSize);
+    proto.getLink().setWindow( s_windowSize );
     // Set send timeout to 1000ms as we are going to use multithread mode
     // With generator mode it is ok to send with timeout from run_fd() function
     // But in loopback mode (!generator), we must resend frames from receiveCallback as soon as possible, use no timeout
     // then
-    proto.setSendTimeout(s_generatorEnabled ? 1000 : 0);
-    proto.setReceiveCallback(onReceiveFrameFd);
-    proto.setSendCallback(onSendFrameFd);
-    s_protoFd = &proto;
+    proto.getLink().setTimeout( 100 );
 
-    proto.begin();
+    if ( !proto.begin() )
+    {
+         return -1;
+    }
+
     std::thread rxThread(
-        [](tinyproto::FdD &proto) -> void {
+        [](tinyproto::SerialProto &proto) -> void {
             while ( !s_terminate )
             {
-                proto.run_rx([](void *u, void *b, int s) -> int { return tiny_serial_read(s_serialFd, b, s); });
+                proto.getLink().runRx();
             }
         },
         std::ref(proto));
     std::thread txThread(
-        [](tinyproto::FdD &proto) -> void {
+        [](tinyproto::SerialProto &proto) -> void {
+            if ( s_isArduinoBoard )
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+            }
             while ( !s_terminate )
             {
-                proto.run_tx([](void *u, const void *b, int s) -> int { return tiny_serial_send(s_serialFd, b, s); });
+                proto.getLink().runTx();
             }
         },
         std::ref(proto));
@@ -219,18 +224,45 @@ static int run_fd(tiny_serial_handle_t port)
     /* Run main cycle forever */
     while ( !s_terminate )
     {
+        // TX
         if ( s_generatorEnabled )
         {
             tinyproto::PacketD packet(s_packetSize);
             packet.put("Generated frame. test in progress");
-            if ( proto.write(packet.data(), static_cast<int>(packet.size())) < 0 )
+            if ( !proto.send(packet, 1000) )
             {
                 fprintf(stderr, "Failed to send packet\n");
             }
+            else
+            {
+                if ( !s_runTest )
+                    fprintf(stderr, ">>> Frame sent payload len=%d\n", (int)packet.size());
+                s_sentBytes += static_cast<int>(packet.size());
+            }
         }
-        else
+        // RX
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            tinyproto::IPacket packet;
+            if ( proto.read( packet, 100 ) )
+            {
+                if ( !s_runTest )
+                    fprintf(stderr, "<<< Frame received payload len=%d\n", (int)packet.size());
+                s_receivedBytes += static_cast<int>(packet.size());
+                if ( !s_generatorEnabled )
+                {
+                    if ( !proto.send( packet, 100 ) )
+                    {
+                        fprintf(stderr, "Failed to send packet\n");
+                    }
+                    else
+                    {
+                        if ( !s_runTest )
+                            fprintf(stderr, ">>> Frame sent payload len=%d\n", (int)packet.size());
+                        s_sentBytes += static_cast<int>(packet.size());
+                    }
+                }
+            }
+//            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
         if ( s_runTest && s_generatorEnabled )
         {
@@ -332,6 +364,12 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    int result;
+    if ( s_protocol == protocol_type_t::FD )
+    {
+        result = run_fd( -1 );
+    }
+    else {
     tiny_serial_handle_t hPort = tiny_serial_open(s_port, 115200);
 
     if ( hPort == TINY_SERIAL_INVALID )
@@ -344,14 +382,15 @@ int main(int argc, char *argv[])
         std::this_thread::sleep_for(std::chrono::milliseconds(1500));
     }
 
-    int result = -1;
+    result = -1;
     switch ( s_protocol )
     {
-        case protocol_type_t::FD: result = run_fd(hPort); break;
+//        case protocol_type_t::FD: result = run_fd(hPort); break;
         case protocol_type_t::LIGHT: result = run_light(hPort); break;
         default: fprintf(stderr, "Unknown protocol type"); break;
     }
     tiny_serial_close(hPort);
+    }
     if ( s_runTest )
     {
         printf("\nRegistered TX speed: %u bps\n", (s_sentBytes)*8 / 15);

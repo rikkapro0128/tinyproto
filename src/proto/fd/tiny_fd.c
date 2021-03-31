@@ -505,7 +505,8 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     *handle = NULL;
     if ( (0 == init->on_frame_cb) || (0 == init->buffer) || (0 == init->buffer_size) )
     {
-        return TINY_ERR_FAILED;
+        LOG(TINY_LOG_CRIT, "Invalid input data: null pointers\n");
+        return TINY_ERR_INVALID_DATA;
     }
     if ( init->mtu == 0 )
     {

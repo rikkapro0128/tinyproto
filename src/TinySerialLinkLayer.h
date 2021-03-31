@@ -39,7 +39,7 @@ public:
     bool begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) override
     {
         bool result = IFdLinkLayer::begin(onReadCb, onSendCb, udata);
-        m_serial.setTimeout(m_timeout);
+        m_serial.setTimeout( this->getTimeout() );
         return result && m_serial.begin(m_speed);
     }
 
@@ -47,11 +47,6 @@ public:
     {
         m_serial.end();
         IFdLinkLayer::end();
-    }
-
-    void setTimeout(int timeout)
-    {
-        m_timeout = timeout;
     }
 
     void runRx() override
@@ -80,7 +75,6 @@ public:
 
 private:
     int m_speed = 115200;
-    int m_timeout = 0;
     tinyproto::Serial m_serial;
 };
 

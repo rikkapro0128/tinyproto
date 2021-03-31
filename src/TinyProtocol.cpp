@@ -22,21 +22,22 @@
 namespace tinyproto
 {
 
-static tiny_fd_handle_t handle = nullptr;
+enum
+{
+    PROTO_RX_MESSAGE = 1,
+    PROTO_RX_QUEUE_FREE = 1,
+};
 
 Proto::Proto(bool multithread)
    : m_link(nullptr)
+   , m_multithread( multithread )
 {
-    // Memory allocation
-    //     1. RX queue
-    //     2. TX queue
-    //     3. Low level protocol
-    //    timeout = 0 for single
-    //              xx for multi
+    tiny_events_create( &m_events );
 }
 
 Proto::~Proto()
 {
+    tiny_events_destroy( &m_events );
 }
 
 void Proto::setLink(ILinkLayer &link)
@@ -51,28 +52,32 @@ ILinkLayer &Proto::getLink()
 
 bool Proto::begin()
 {
+    tiny_events_set( &m_events, PROTO_RX_QUEUE_FREE );
+    uint32_t timeout = m_link->getTimeout();
+    if ( m_multithread && !timeout )
+    {
+        timeout = 100;
+    }
+    else if ( !m_multithread)
+    {
+        timeout = 0;
+    }
+    m_link->setTimeout( timeout );
     return m_link->begin(onReadCb, onSendCb, this);
 }
 
-#if defined(ARDUINO)
-bool Proto::beginSerial()
+bool Proto::send(const IPacket &packet, uint32_t timeout)
 {
-    return true;
-}
-#elif defined(__linux__) || defined(_WIN32)
-bool Proto::beginSerial(char *device)
-{
-    return false;
-}
-#endif
-
-bool Proto::send(const IPacket &packet, int timeout)
-{
-    int result;
+    int result = TINY_ERR_FAILED;
+    uint32_t startTs = tiny_millis();
     for ( ;; )
     {
-        result = tiny_fd_send_packet(handle, packet.m_buf, packet.m_len);
+        result = m_link->put( packet.m_buf, packet.m_len );
         if ( result == TINY_SUCCESS || timeout <= 0 )
+        {
+            break;
+        }
+        if ( static_cast<uint32_t>(tiny_millis() - startTs) >= timeout )
         {
             break;
         }
@@ -85,19 +90,24 @@ bool Proto::send(const IPacket &packet, int timeout)
     return result == TINY_SUCCESS;
 }
 
-bool Proto::read(IPacket &packet, int timeout)
+bool Proto::read(IPacket &packet, uint32_t timeout)
 {
-    int result;
+    int result = TINY_ERR_FAILED;
+    uint32_t startTs = tiny_millis();
     for ( ;; )
     {
-        int bits = tiny_events_wait(&m_events, 1, EVENT_BITS_CLEAR, m_multithread ? timeout : 0);
-        if ( bits & 1 )
+        uint8_t bits = tiny_events_wait(&m_events, PROTO_RX_MESSAGE, EVENT_BITS_CLEAR, m_multithread ? timeout : 0);
+        if ( bits & PROTO_RX_MESSAGE )
         {
-            // TODO: Read from queue
+            packet.m_buf = m_message;
+            packet.m_size = m_link->getMtu();
+            packet.m_len = m_messageLen;
+            packet.m_p = 0;
+            tiny_events_set( &m_events, PROTO_RX_QUEUE_FREE );
             result = TINY_SUCCESS;
             break;
         }
-        if ( timeout <= 0 )
+        if ( static_cast<uint32_t>(tiny_millis() - startTs) >= timeout )
         {
             break;
         }
@@ -118,12 +128,18 @@ void Proto::end()
 
 void Proto::onRead(uint8_t *buf, int len)
 {
-    // TODO: Put to queue
+    uint8_t bits = tiny_events_wait(&m_events, PROTO_RX_QUEUE_FREE, EVENT_BITS_CLEAR, 0);
+    if ( bits == 0 )
+    {
+        // TODO: Lost frame
+    }
+    m_message = buf;
+    m_messageLen = len;
+    tiny_events_set( &m_events, PROTO_RX_MESSAGE );
 }
 
 void Proto::onSend(uint8_t *buf, int len)
 {
-    // TODO: Remove from queue if any
 }
 
 void Proto::onReadCb(void *udata, uint8_t *buf, int len)
@@ -143,8 +159,8 @@ void Proto::onSendCb(void *udata, uint8_t *buf, int len)
 
 #else
 
-SerialProto::SerialProto(char *dev)
-    : Proto()
+SerialProto::SerialProto(char *dev, bool multithread)
+    : Proto( multithread )
     , m_layer( dev )
 {
     setLink( m_layer );

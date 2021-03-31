@@ -31,6 +31,9 @@ namespace tinyproto
 class ILinkLayer
 {
 public:
+    /**
+     *
+     */
     virtual bool begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) = 0;
 
     virtual void end() = 0;
@@ -41,10 +44,29 @@ public:
 
     virtual int put(void *buf, int size) = 0;
 
-    virtual int getMtu()
+    void setTimeout(uint32_t timeout)
     {
-        return INT_MAX;
+        m_timeout = timeout;
     }
+
+    uint32_t getTimeout()
+    {
+        return m_timeout;
+    }
+
+    int getMtu()
+    {
+        return m_mtu;
+    }
+
+    void setMtu(int mtu)
+    {
+        m_mtu = mtu;
+    }
+
+private:
+    int m_mtu = 16384;
+    uint32_t m_timeout;
 };
 
 class IFdLinkLayer: public ILinkLayer
@@ -60,11 +82,6 @@ public:
 
     int put(void *buf, int size) override;
 
-    int getMtu() override
-    {
-        return m_mtu;
-    }
-
     int getWindow()
     {
         return m_txWindow;
@@ -75,10 +92,7 @@ public:
         return m_crc;
     }
 
-    void setMtu(int mtu)
-    {
-        m_mtu = mtu;
-    }
+    void setCrc( hdlc_crc_t crc ) { m_crc = crc; }
 
     void setWindow(int window)
     {
@@ -97,10 +111,8 @@ protected:
 private:
     uint8_t *m_buffer = nullptr;
     int m_bufferSize = 0;
-    int m_mtu = 64;
     uint8_t m_txWindow = 2;
-    int m_sendTimeout = 100;
-    hdlc_crc_t m_crc = HDLC_CRC_16;
+    hdlc_crc_t m_crc = HDLC_CRC_8;
 };
 
 } // namespace tinyproto

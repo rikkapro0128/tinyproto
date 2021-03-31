@@ -69,6 +69,14 @@ public:
         m_p = 0;
     }
 
+    IPacket()
+    {
+        m_len = 0;
+        m_size = 0;
+        m_buf = nullptr;
+        m_p = 0;
+    }
+
     /**
      * Destroys the object
      */

@@ -36,7 +36,7 @@ public:
     Serial(const char *dev);
 #endif
 
-    void setTimeout(int timeoutMs);
+    void setTimeout(uint32_t timeoutMs);
 
     bool begin(int speed);
 
@@ -51,7 +51,7 @@ private:
     const char *m_dev;
 #endif
     tiny_serial_handle_t m_handle = -1;
-    int m_timeoutMs = 0;
+    uint32_t m_timeoutMs = 0;
 };
 
 } // namespace tinyproto
