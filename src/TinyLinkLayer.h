@@ -42,7 +42,7 @@ public:
 
     virtual void runTx() = 0;
 
-    virtual int put(void *buf, int size) = 0;
+    virtual bool put(void *buf, int size) = 0;
 
     void setTimeout(uint32_t timeout)
     {
@@ -80,7 +80,7 @@ public:
 
     void end() override;
 
-    int put(void *buf, int size) override;
+    bool put(void *buf, int size) override;
 
     int getWindow()
     {
@@ -106,9 +106,13 @@ public:
     }
 
 protected:
-    tiny_fd_handle_t m_handle = nullptr;
+
+    int parseData(const uint8_t *data, int size);
+
+    int getData(uint8_t *data, int size);
 
 private:
+    tiny_fd_handle_t m_handle = nullptr;
     uint8_t *m_buffer = nullptr;
     int m_bufferSize = 0;
     uint8_t m_txWindow = 2;

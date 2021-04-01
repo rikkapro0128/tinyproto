@@ -27,18 +27,18 @@
 namespace tinyproto
 {
 
-template <int BSIZE> class ISerialLinkLayer: public IFdLinkLayer
+template <class BASE, int BSIZE> class ISerialLinkLayer: public BASE
 {
 public:
     ISerialLinkLayer(char *dev, void *buffer, int size)
-        : IFdLinkLayer(buffer, size)
+        : BASE(buffer, size)
         , m_serial(dev)
     {
     }
 
     bool begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) override
     {
-        bool result = IFdLinkLayer::begin(onReadCb, onSendCb, udata);
+        bool result = BASE::begin(onReadCb, onSendCb, udata);
         m_serial.setTimeout( this->getTimeout() );
         return result && m_serial.begin(m_speed);
     }
@@ -46,20 +46,20 @@ public:
     void end() override
     {
         m_serial.end();
-        IFdLinkLayer::end();
+        BASE::end();
     }
 
     void runRx() override
     {
         uint8_t buf[BSIZE];
         int len = m_serial.readBytes(buf, BSIZE);
-        tiny_fd_on_rx_data(m_handle, buf, len);
+        BASE::parseData( buf, len);
     }
 
     void runTx() override
     {
         uint8_t buf[BSIZE];
-        int len = tiny_fd_get_tx_data(m_handle, buf, BSIZE);
+        int len = BASE::getData( buf, BSIZE);
         uint8_t *ptr = buf;
         while ( len > 0 )
         {
@@ -78,11 +78,11 @@ private:
     tinyproto::Serial m_serial;
 };
 
-template <int MTU, int TX_WINDOW, int RX_WINDOW, int BLOCK> class StaticSerialLinkLayer: public ISerialLinkLayer<BLOCK>
+template <int MTU, int TX_WINDOW, int RX_WINDOW, int BLOCK> class StaticSerialFdLinkLayer: public ISerialLinkLayer<IFdLinkLayer, BLOCK>
 {
 public:
-    StaticSerialLinkLayer(char *dev)
-        : ISerialLinkLayer<BLOCK>(dev, this->m_buffer, FD_BUF_SIZE_EX(MTU, TX_WINDOW, HDLC_CRC_16, RX_WINDOW))
+    StaticSerialFdLinkLayer(char *dev)
+        : ISerialLinkLayer<IFdLinkLayer, BLOCK>(dev, this->m_buffer, FD_BUF_SIZE_EX(MTU, TX_WINDOW, HDLC_CRC_16, RX_WINDOW))
     {
         this->setMtu(MTU);
         this->setWindow(TX_WINDOW);
@@ -94,26 +94,26 @@ private:
 
 #if defined(ARDUINO)
 
-class SerialLinkLayer: public StaticSerialLinkLayer<16, 2, 2, 4>
+class SerialFdLink: public StaticSerialFdLinkLayer<16, 2, 2, 4>
 {
 public:
-    SerialLinkLayer(HardwareSerial *dev)
-        : StaticSerialLinkLayer(retinterpret_cast<char *>(dev))
+    SerialFdLink(HardwareSerial *dev)
+        : StaticSerialFdLinkLayer(retinterpret_cast<char *>(dev))
     {
     }
 };
 
 #else
 
-class SerialLinkLayer: public ISerialLinkLayer<128>
+class SerialFdLink: public ISerialLinkLayer<IFdLinkLayer, 128>
 {
 public:
-    SerialLinkLayer(char *dev)
-        : ISerialLinkLayer<128>(dev, nullptr, 0)
+    SerialFdLink(char *dev)
+        : ISerialLinkLayer<IFdLinkLayer, 128>(dev, nullptr, 0)
     {
     }
 
-    ~SerialLinkLayer();
+    ~SerialFdLink();
 
     bool begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) override;
 

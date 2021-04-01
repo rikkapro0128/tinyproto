@@ -155,42 +155,20 @@ static int parse_args(int argc, char *argv[])
 
 //================================== FD ======================================
 
-tiny_serial_handle_t s_serialFd;
-tinyproto::FdD *s_protoFd = nullptr;
-
-void onReceiveFrameFd(void *userData, tinyproto::IPacket &pkt)
-{
-    if ( !s_runTest )
-        fprintf(stderr, "<<< Frame received payload len=%d\n", (int)pkt.size());
-    s_receivedBytes += static_cast<int>(pkt.size());
-    if ( !s_generatorEnabled )
-    {
-        if ( s_protoFd->write(pkt) < 0 )
-        {
-            fprintf(stderr, "Failed to send packet\n");
-        }
-    }
-}
-
-void onSendFrameFd(void *userData, tinyproto::IPacket &pkt)
-{
-    if ( !s_runTest )
-        fprintf(stderr, ">>> Frame sent payload len=%d\n", (int)pkt.size());
-    s_sentBytes += static_cast<int>(pkt.size());
-}
-
 static int run_fd(tiny_serial_handle_t port)
 {
-    tinyproto::SerialProto proto( s_port, true );
-    proto.getLink().setMtu( s_packetSize );
-    proto.getLink().setCrc( s_crc );
+    tinyproto::Proto proto( true );
+    tinyproto::SerialFdLink serial( s_port );
+    proto.setLink( serial );
+    serial.setMtu( s_packetSize );
+    serial.setCrc( s_crc );
     // Set window size to 4 frames. This should be the same value, used by other size
-    proto.getLink().setWindow( s_windowSize );
+    serial.setWindow( s_windowSize );
     // Set send timeout to 1000ms as we are going to use multithread mode
     // With generator mode it is ok to send with timeout from run_fd() function
     // But in loopback mode (!generator), we must resend frames from receiveCallback as soon as possible, use no timeout
     // then
-    proto.getLink().setTimeout( 100 );
+    serial.setTimeout( 100 );
 
     if ( !proto.begin() )
     {
@@ -198,7 +176,7 @@ static int run_fd(tiny_serial_handle_t port)
     }
 
     std::thread rxThread(
-        [](tinyproto::SerialProto &proto) -> void {
+        [](tinyproto::Proto &proto) -> void {
             while ( !s_terminate )
             {
                 proto.getLink().runRx();
@@ -206,7 +184,7 @@ static int run_fd(tiny_serial_handle_t port)
         },
         std::ref(proto));
     std::thread txThread(
-        [](tinyproto::SerialProto &proto) -> void {
+        [](tinyproto::Proto &proto) -> void {
             if ( s_isArduinoBoard )
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1500));
@@ -283,6 +261,8 @@ static int run_fd(tiny_serial_handle_t port)
 }
 
 //================================== LIGHT ======================================
+
+tiny_serial_handle_t s_serialFd;
 
 static int run_light(tiny_serial_handle_t port)
 {

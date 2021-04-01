@@ -56,9 +56,21 @@ void IFdLinkLayer::end()
     m_handle = nullptr;
 }
 
-int IFdLinkLayer::put(void *buf, int size)
+bool IFdLinkLayer::put(void *buf, int size)
 {
-    return tiny_fd_send_packet(m_handle, buf, size);
+    return tiny_fd_send_packet(m_handle, buf, size) >= 0;
 }
+
+int IFdLinkLayer::parseData(const uint8_t *data, int size)
+{
+    return tiny_fd_on_rx_data(m_handle, data, size);
+}
+
+int IFdLinkLayer::getData(uint8_t *data, int size)
+{
+    return tiny_fd_get_tx_data(m_handle, data, size);
+}
+
+/////////////////////////////////////////////////////////////////////////////
 
 } // namespace tinyproto

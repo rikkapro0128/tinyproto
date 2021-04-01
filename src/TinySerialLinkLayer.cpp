@@ -27,7 +27,7 @@ namespace tinyproto
 
 #else
 
-SerialLinkLayer::~SerialLinkLayer()
+SerialFdLink::~SerialFdLink()
 {
     if ( m_buffer )
     {
@@ -36,15 +36,15 @@ SerialLinkLayer::~SerialLinkLayer()
     }
 }
 
-bool SerialLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata)
+bool SerialFdLink::begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata)
 {
     int size = tiny_fd_buffer_size_by_mtu_ex(getMtu(), getWindow(), getCrc(), 2);
     m_buffer = reinterpret_cast<uint8_t *>(malloc(size));
     setBuffer(m_buffer, size);
-    return ISerialLinkLayer<128>::begin(onReadCb, onSendCb, udata);
+    return ISerialLinkLayer<IFdLinkLayer,128>::begin(onReadCb, onSendCb, udata);
 }
 
-void SerialLinkLayer::end()
+void SerialFdLink::end()
 {
     if ( m_buffer )
     {

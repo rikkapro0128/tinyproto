@@ -78,15 +78,15 @@ private:
 
 
 
-class SerialProto: public Proto
+class SerialFdProto: public Proto
 {
 public:
-    SerialProto(char *dev, bool multithread = false);
+    SerialFdProto(char *dev, bool multithread = false);
 
-    SerialLinkLayer &getLink();
+    SerialFdLink &getLink();
 
 private:
-    SerialLinkLayer m_layer;
+    SerialFdLink m_layer;
 };
 
 

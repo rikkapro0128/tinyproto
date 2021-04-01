@@ -68,12 +68,12 @@ bool Proto::begin()
 
 bool Proto::send(const IPacket &packet, uint32_t timeout)
 {
-    int result = TINY_ERR_FAILED;
+    bool result = false;
     uint32_t startTs = tiny_millis();
     for ( ;; )
     {
         result = m_link->put( packet.m_buf, packet.m_len );
-        if ( result == TINY_SUCCESS || timeout <= 0 )
+        if ( result || timeout <= 0 )
         {
             break;
         }
@@ -87,7 +87,7 @@ bool Proto::send(const IPacket &packet, uint32_t timeout)
             m_link->runRx();
         }
     }
-    return result == TINY_SUCCESS;
+    return result;
 }
 
 bool Proto::read(IPacket &packet, uint32_t timeout)
@@ -167,7 +167,7 @@ void Proto::onSendCb(void *udata, uint8_t *buf, int len)
 
 #else
 
-SerialProto::SerialProto(char *dev, bool multithread)
+SerialFdProto::SerialFdProto(char *dev, bool multithread)
     : Proto( multithread )
     , m_layer( dev )
 {
@@ -175,7 +175,7 @@ SerialProto::SerialProto(char *dev, bool multithread)
 }
 
 
-SerialLinkLayer &SerialProto::getLink()
+SerialFdLink &SerialFdProto::getLink()
 {
     return m_layer;
 }
