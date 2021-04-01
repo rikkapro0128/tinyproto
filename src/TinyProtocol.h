@@ -31,8 +31,8 @@
 #include "TinyLightProtocol.h"
 #include "TinyProtocolHdlc.h"
 #include "TinyProtocolFd.h"
-#include "TinyLinkLayer.h"
-#include "TinySerialLinkLayer.h"
+#include "link/TinyLinkLayer.h"
+#include "link/TinySerialFdLink.h"
 
 #include <stdint.h>
 #include <limits.h>

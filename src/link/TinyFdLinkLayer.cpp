@@ -17,7 +17,7 @@
     along with Protocol Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "TinyLinkLayer.h"
+#include "TinyFdLinkLayer.h"
 
 namespace tinyproto
 {

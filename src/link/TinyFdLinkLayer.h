@@ -19,55 +19,14 @@
 
 #pragma once
 
-#include "TinyPacket.h"
-#include "TinyProtocolFd.h"
+#include "TinyLinkLayer.h"
+#include "proto/fd/tiny_fd.h"
 
 #include <stdint.h>
 #include <limits.h>
 
 namespace tinyproto
 {
-
-class ILinkLayer
-{
-public:
-    /**
-     *
-     */
-    virtual bool begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) = 0;
-
-    virtual void end() = 0;
-
-    virtual void runRx() = 0;
-
-    virtual void runTx() = 0;
-
-    virtual bool put(void *buf, int size) = 0;
-
-    void setTimeout(uint32_t timeout)
-    {
-        m_timeout = timeout;
-    }
-
-    uint32_t getTimeout()
-    {
-        return m_timeout;
-    }
-
-    int getMtu()
-    {
-        return m_mtu;
-    }
-
-    void setMtu(int mtu)
-    {
-        m_mtu = mtu;
-    }
-
-private:
-    int m_mtu = 16384;
-    uint32_t m_timeout;
-};
 
 class IFdLinkLayer: public ILinkLayer
 {

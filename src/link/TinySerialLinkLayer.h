@@ -19,10 +19,8 @@
 
 #pragma once
 
-#include "TinyLinkLayer.h"
-#include "TinySerial.h"
-
-#include "proto/fd/tiny_fd_int.h"
+#include "link/TinyLinkLayer.h"
+#include "interface/TinySerial.h"
 
 namespace tinyproto
 {
@@ -77,52 +75,5 @@ private:
     int m_speed = 115200;
     tinyproto::Serial m_serial;
 };
-
-template <int MTU, int TX_WINDOW, int RX_WINDOW, int BLOCK> class StaticSerialFdLinkLayer: public ISerialLinkLayer<IFdLinkLayer, BLOCK>
-{
-public:
-    StaticSerialFdLinkLayer(char *dev)
-        : ISerialLinkLayer<IFdLinkLayer, BLOCK>(dev, this->m_buffer, FD_BUF_SIZE_EX(MTU, TX_WINDOW, HDLC_CRC_16, RX_WINDOW))
-    {
-        this->setMtu(MTU);
-        this->setWindow(TX_WINDOW);
-    }
-
-private:
-    uint8_t m_buffer[FD_BUF_SIZE_EX(MTU, TX_WINDOW, HDLC_CRC_16, RX_WINDOW)];
-};
-
-#if defined(ARDUINO)
-
-class SerialFdLink: public StaticSerialFdLinkLayer<16, 2, 2, 4>
-{
-public:
-    SerialFdLink(HardwareSerial *dev)
-        : StaticSerialFdLinkLayer(retinterpret_cast<char *>(dev))
-    {
-    }
-};
-
-#else
-
-class SerialFdLink: public ISerialLinkLayer<IFdLinkLayer, 128>
-{
-public:
-    SerialFdLink(char *dev)
-        : ISerialLinkLayer<IFdLinkLayer, 128>(dev, nullptr, 0)
-    {
-    }
-
-    ~SerialFdLink();
-
-    bool begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) override;
-
-    void end() override;
-
-private:
-    uint8_t *m_buffer = nullptr;
-};
-
-#endif
 
 } // namespace tinyproto
