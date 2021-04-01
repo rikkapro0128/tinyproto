@@ -446,19 +446,19 @@ static int hdlc_ll_read_end(hdlc_ll_handle_t handle, const uint8_t *data, int le
     {
 #ifdef CONFIG_ENABLE_CHECKSUM
         case HDLC_CRC_8:
-            calc_crc = chksum(INITCHECKSUM, handle->rx_buf, len - 1) & 0x00FF;
+            calc_crc = chksum(INITCHECKSUM, handle->rx.frame_buf, len - 1) & 0x00FF;
             read_crc = handle->rx.data[-1];
             break;
 #endif
 #ifdef CONFIG_ENABLE_FCS16
         case HDLC_CRC_16:
-            calc_crc = crc16(PPPINITFCS16, handle->rx_buf, len - 2);
+            calc_crc = crc16(PPPINITFCS16, handle->rx.frame_buf, len - 2);
             read_crc = handle->rx.data[-2] | ((uint16_t)handle->rx.data[-1] << 8);
             break;
 #endif
 #ifdef CONFIG_ENABLE_FCS32
         case HDLC_CRC_32:
-            calc_crc = crc32(PPPINITFCS32, handle->rx_buf, len - 4);
+            calc_crc = crc32(PPPINITFCS32, handle->rx.frame_buf, len - 4);
             read_crc = handle->rx.data[-4] | ((uint32_t)handle->rx.data[-3] << 8) |
                        ((uint32_t)handle->rx.data[-2] << 16) | ((uint32_t)handle->rx.data[-1] << 24);
             break;
@@ -472,11 +472,11 @@ static int hdlc_ll_read_end(hdlc_ll_handle_t handle, const uint8_t *data, int le
         LOG(TINY_LOG_ERR, "[HDLC:%p] RX: WRONG CRC (calc:%08X != %08X)\n", handle, calc_crc, read_crc);
         if ( TINY_LOG_DEB < g_tiny_log_level )
             for ( int i = 0; i < len; i++ )
-                fprintf(stderr, " %c ", (char)(handle->rx_buf)[i]);
+                fprintf(stderr, " %c ", (char)(handle->rx.frame_buf)[i]);
         LOG(TINY_LOG_DEB, "\n");
         if ( TINY_LOG_DEB < g_tiny_log_level )
             for ( int i = 0; i < len; i++ )
-                fprintf(stderr, " %02X ", (handle->rx_buf)[i]);
+                fprintf(stderr, " %02X ", (handle->rx.frame_buf)[i]);
         LOG(TINY_LOG_DEB, "\n-----------\n");
 #endif
         return TINY_ERR_WRONG_CRC;
