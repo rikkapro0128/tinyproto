@@ -224,33 +224,17 @@ static int run_fd(tiny_serial_handle_t port)
     /* Run main cycle forever */
     while ( !s_terminate )
     {
-        // TX
-        if ( s_generatorEnabled )
-        {
-            tinyproto::PacketD packet(s_packetSize);
-            packet.put("Generated frame. test in progress");
-            if ( !proto.send(packet, 1000) )
-            {
-                fprintf(stderr, "Failed to send packet\n");
-            }
-            else
-            {
-                if ( !s_runTest )
-                    fprintf(stderr, ">>> Frame sent payload len=%d\n", (int)packet.size());
-                s_sentBytes += static_cast<int>(packet.size());
-            }
-        }
         // RX
         {
-            tinyproto::IPacket packet;
-            if ( proto.read( packet, 100 ) )
+            tinyproto::HeapPacket packet(s_packetSize);
+            if ( proto.read( packet, 10 ) )
             {
                 if ( !s_runTest )
                     fprintf(stderr, "<<< Frame received payload len=%d\n", (int)packet.size());
                 s_receivedBytes += static_cast<int>(packet.size());
                 if ( !s_generatorEnabled )
                 {
-                    if ( !proto.send( packet, 100 ) )
+                    if ( !proto.send( packet, 1000 ) )
                     {
                         fprintf(stderr, "Failed to send packet\n");
                     }
@@ -263,6 +247,22 @@ static int run_fd(tiny_serial_handle_t port)
                 }
             }
 //            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        // TX
+        if ( s_generatorEnabled )
+        {
+            tinyproto::HeapPacket packet(s_packetSize);
+            packet.put("Generated frame. test in progress");
+            if ( !proto.send(packet, 1000) )
+            {
+                fprintf(stderr, "Failed to send packet\n");
+            }
+            else
+            {
+                if ( !s_runTest )
+                    fprintf(stderr, ">>> Frame sent payload len=%d\n", (int)packet.size());
+                s_sentBytes += static_cast<int>(packet.size());
+            }
         }
         if ( s_runTest && s_generatorEnabled )
         {
@@ -294,7 +294,7 @@ static int run_light(tiny_serial_handle_t port)
                 [](void *a, void *b, int c) -> int { return tiny_serial_read(s_serialFd, b, c); });
     std::thread rxThread(
         [](tinyproto::Light &proto) -> void {
-            tinyproto::PacketD packet(s_packetSize + 4);
+            tinyproto::HeapPacket packet(s_packetSize + 4);
             while ( !s_terminate )
             {
                 if ( proto.read(packet) > 0 )
@@ -322,7 +322,7 @@ static int run_light(tiny_serial_handle_t port)
     {
         if ( s_generatorEnabled )
         {
-            tinyproto::PacketD packet(s_packetSize);
+            tinyproto::HeapPacket packet(s_packetSize);
             packet.put("Generated frame. test in progress");
             if ( proto.write(packet) < 0 )
             {

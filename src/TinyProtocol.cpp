@@ -99,8 +99,15 @@ bool Proto::read(IPacket &packet, uint32_t timeout)
         uint8_t bits = tiny_events_wait(&m_events, PROTO_RX_MESSAGE, EVENT_BITS_CLEAR, m_multithread ? timeout : 0);
         if ( bits & PROTO_RX_MESSAGE )
         {
-            packet.m_buf = m_message;
-            packet.m_size = m_link->getMtu();
+            if ( packet.m_buf )
+            {
+                memcpy( packet.m_buf, m_message, m_messageLen );
+            }
+            else
+            {
+                packet.m_buf = m_message;
+                packet.m_size = m_link->getMtu();
+            }
             packet.m_len = m_messageLen;
             packet.m_p = 0;
             tiny_events_set( &m_events, PROTO_RX_QUEUE_FREE );
@@ -132,6 +139,7 @@ void Proto::onRead(uint8_t *buf, int len)
     if ( bits == 0 )
     {
         // TODO: Lost frame
+//        printf("#################################################### LOST\n");
     }
     m_message = buf;
     m_messageLen = len;

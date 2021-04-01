@@ -107,7 +107,7 @@ void main_task(void *args)
 #endif
     auto startTs = std::chrono::steady_clock::now();
 
-    tinyproto::PacketD packet(GENERATED_PACKET_SIZE);
+    tinyproto::HeapPacket packet(GENERATED_PACKET_SIZE);
     packet.put("Generated frame. test in progress");
 
     for ( ;; )

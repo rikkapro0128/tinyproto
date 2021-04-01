@@ -240,7 +240,7 @@ public:
      * Returns size of payload data in the received packet.
      * @return size of payload data.
      */
-    inline char *data()
+    inline char *data() const
     {
         return (char *)m_buf;
     }
@@ -295,19 +295,25 @@ private:
  * Class which allocated buffer for packet dynamically.
  * Use this class only on powerful microcontrollers.
  */
-class PacketD: public IPacket
+class HeapPacket: public IPacket
 {
 public:
     /**
      * Creates packet with dynamically allocated buffer.
      * @param size number of bytes to allocate for the packet buffer.
      */
-    explicit PacketD(int size)
+    explicit HeapPacket(int size)
         : IPacket((char *)(new uint8_t[size]), size)
     {
     }
 
-    ~PacketD()
+    HeapPacket( const IPacket &src )
+        : IPacket((char *)(new uint8_t[src.size()]), src.size())
+    {
+        memcpy(data(), src.data(), src.size());
+    }
+
+    ~HeapPacket()
     {
         delete[](uint8_t *) data();
     }
