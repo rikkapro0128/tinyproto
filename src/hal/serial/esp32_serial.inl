@@ -28,6 +28,7 @@
 #include "driver/gpio.h"
 #include <sdkconfig.h>
 #include <stdio.h>
+#include <string.h>
 
 #define BUFSIZE 128
 
@@ -87,22 +88,25 @@ tiny_serial_handle_t tiny_serial_open(const char *name, uint32_t baud)
 #endif
     };
 
-    char *token = strtok(dev, ",");
+    char* params = strdup(name);
+    char *token = strtok(params, ",");
     int index = 0;
     while ( token )
     {
         int value = strtol(token, NULL, 10);
         switch ( index )
         {
-            case 0: tx_gpio = value; break;
-            case 1: rx_gpio = value; break;
-            case 2: rts_gpio = value; break;
-            case 3: cts_gpio = value; break;
+            case 0: break; // Thats the name of the port
+            case 1: tx_gpio = value; break;
+            case 2: rx_gpio = value; break;
+            case 3: rts_gpio = value; break;
+            case 4: cts_gpio = value; break;
             default: break;
         }
         index++;
         token = strtok(NULL, ",");
     }
+    free(params);
 
     ESP_ERROR_CHECK(uart_param_config(handle, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(handle, tx_gpio, rx_gpio, rts_gpio, cts_gpio));
@@ -151,6 +155,7 @@ int tiny_serial_read(tiny_serial_handle_t port, void *buf, int len)
 
 int tiny_serial_read_timeout(tiny_serial_handle_t port, void *buf, int len, uint32_t timeout_ms)
 {
-    return uart_read_bytes(port, (uint8_t *)b, s, timeout_ms / portTICK_PERIOD_MS);
+    return uart_read_bytes(port, (uint8_t *)buf, len, timeout_ms / portTICK_PERIOD_MS);
 }
-}
+
+

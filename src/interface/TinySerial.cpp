@@ -22,7 +22,7 @@
 namespace tinyproto
 {
 
-#if defined(ARDUINO) || defined(__linux__) || defined(_WIN32)
+#if defined(ARDUINO) || defined(__linux__) || defined(_WIN32) || defined(__XTENSA__)
 
 #if defined(ARDUINO)
 Serial::Serial(HardwareSerial &dev)
@@ -65,7 +65,7 @@ int Serial::write(const uint8_t *buf, int len)
 
 #else
 
-Serial::Serial(char *dev)
+Serial::Serial(const char *dev)
 {
 }
 

@@ -45,13 +45,13 @@ uint32_t s_sentBytes = 0;
 uint32_t s_sentOverheadBytes = 0;
 tiny_serial_handle_t s_serial = TINY_SERIAL_INVALID;
 
-void onReceive(tinyproto::IPacket &pkt)
+void onReceive(void *udata, tinyproto::IPacket &pkt)
 {
     s_receivedBytes += pkt.size();
     s_receivedOverheadBytes += /* ESCAPE */ 2 + /* CRC16 */ 2 + /* I header */ 2;
 }
 
-void onSendFrameFd(tinyproto::IPacket &pkt)
+void onSendFrameFd(void *udata, tinyproto::IPacket &pkt)
 {
     s_sentBytes += pkt.size();
     s_sentOverheadBytes += /* ESCAPE */ 2 + /* CRC16 */ 2 + /* I header */ 2;
@@ -69,7 +69,7 @@ void tx_task(void *arg)
     for ( ;; )
     {
         proto.run_tx(
-            [](void *p, const void *b, int s) -> int { return tiny_serial_read_timeout(s_serial, b, s, 100); });
+            [](void *p, const void *b, int s) -> int { return tiny_serial_send_timeout(s_serial, b, s, 100); });
     }
     vTaskDelete(NULL);
 }
@@ -78,7 +78,7 @@ void rx_task(void *arg)
 {
     for ( ;; )
     {
-        proto.run_rx([](void *p, void *b, int s) -> int { return tiny_serial_send_timeout(s_serial, b, s, 100); });
+        proto.run_rx([](void *p, void *b, int s) -> int { return tiny_serial_read_timeout(s_serial, b, s, 100); });
     }
     vTaskDelete(NULL);
 }
