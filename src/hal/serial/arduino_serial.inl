@@ -17,40 +17,42 @@
     along with Protocol Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "hal/tiny_serial.h"
+
 #include <Arduino.h>
 
 void tiny_serial_close(tiny_serial_handle_t port)
 {
-    port->end();
+    reinterpret_cast<HardwareSerial *>(port)->end();
 }
 
 tiny_serial_handle_t tiny_serial_open(const char *name, uint32_t baud)
 {
     tiny_serial_handle_t handle = reinterpret_cast<tiny_serial_handle_t>(name);
-    m_handle->begin(baud);
+    reinterpret_cast<HardwareSerial *>(handle)->begin(baud);
     return handle;
 }
 
 int tiny_serial_send(tiny_serial_handle_t port, const void *buf, int len)
 {
-    port->setTimeout(100);
-    return port->write(buf, len);
+    reinterpret_cast<HardwareSerial *>(port)->setTimeout(100);
+    return reinterpret_cast<HardwareSerial *>(port)->write(reinterpret_cast<const uint8_t *>(buf), len);
 }
 
 int tiny_serial_send_timeout(tiny_serial_handle_t port, const void *buf, int len, uint32_t timeout_ms)
 {
-    port->setTimeout(timeout_ms);
-    return port->write(buf, len);
+    reinterpret_cast<HardwareSerial *>(port)->setTimeout(timeout_ms);
+    return reinterpret_cast<HardwareSerial *>(port)->write(reinterpret_cast<const uint8_t *>(buf), len);
 }
 
 int tiny_serial_read(tiny_serial_handle_t port, void *buf, int len)
 {
-    port->setTimeout(100);
-    return port->readBytes(buf, len);
+    reinterpret_cast<HardwareSerial *>(port)->setTimeout(100);
+    return reinterpret_cast<HardwareSerial *>(port)->readBytes(reinterpret_cast<uint8_t *>(buf), len);
 }
 
 int tiny_serial_read_timeout(tiny_serial_handle_t port, void *buf, int len, uint32_t timeout_ms)
 {
-    port->setTimeout(timeout_ms);
-    return port->readBytes(buf, len);
+    reinterpret_cast<HardwareSerial *>(port)->setTimeout(timeout_ms);
+    return reinterpret_cast<HardwareSerial *>(port)->readBytes(reinterpret_cast<uint8_t *>(buf), len);
 }

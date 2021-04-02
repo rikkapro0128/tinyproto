@@ -24,6 +24,13 @@ namespace tinyproto
 
 #if defined(ARDUINO) || defined(__linux__) || defined(_WIN32)
 
+#if defined(ARDUINO)
+Serial::Serial(HardwareSerial &dev)
+    : m_dev( reinterpret_cast<char *>(&dev) )
+{
+}
+#endif
+
 Serial::Serial(const char *dev)
     : m_dev(dev)
 {

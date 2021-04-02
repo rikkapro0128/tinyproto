@@ -21,6 +21,9 @@
 
 #include "hal/tiny_serial.h"
 
+#if defined(ARDUINO)
+#include <Arduino.h>
+#endif
 #include <stdint.h>
 #include <limits.h>
 
@@ -31,10 +34,9 @@ class Serial
 {
 public:
 #if defined(ARDUINO)
-    Serial();
-#else
-    Serial(const char *dev);
+    Serial(HardwareSerial &dev);
 #endif
+    Serial(const char *dev);
 
     void setTimeout(uint32_t timeoutMs);
 
@@ -47,9 +49,7 @@ public:
     int write(const uint8_t *buf, int len);
 
 private:
-#if !defined(ARDUINO)
     const char *m_dev;
-#endif
     tiny_serial_handle_t m_handle = -1;
     uint32_t m_timeoutMs = 0;
 };

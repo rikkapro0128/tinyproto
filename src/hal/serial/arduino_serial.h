@@ -20,17 +20,17 @@
 #pragma once
 
 #ifdef __cplusplus
+
 extern "C"
 {
 #endif
 
-#include <Arduino.h>
 
     /// Unique port handle
-    typedef HardwareSerial *tiny_serial_handle_t;
+    typedef uintptr_t tiny_serial_handle_t;
 
 /** Invalid serial handle definition */
-#define TINY_SERIAL_INVALID (nullptr)
+#define TINY_SERIAL_INVALID (0)
 
 #ifdef __cplusplus
 }

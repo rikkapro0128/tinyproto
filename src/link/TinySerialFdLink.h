@@ -49,7 +49,7 @@ class SerialFdLink: public StaticSerialFdLinkLayer<16, 2, 2, 4>
 {
 public:
     SerialFdLink(HardwareSerial *dev)
-        : StaticSerialFdLinkLayer(retinterpret_cast<char *>(dev))
+        : StaticSerialFdLinkLayer(reinterpret_cast<char *>(dev))
     {
     }
 };
