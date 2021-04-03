@@ -76,6 +76,7 @@ OBJ_LIB += \
 	src/TinyProtocol.o \
 	src/link/TinyLinkLayer.o \
 	src/link/TinyFdLinkLayer.o \
+	src/link/TinyHdlcLinkLayer.o \
 	src/link/TinySerialLinkLayer.o \
 	src/link/TinySerialFdLink.o \
 	src/interface/TinySerial.o \
