@@ -70,8 +70,8 @@ private:
     int m_user_rx_buf_size = 0;
     bool m_tx_from_main = false;
 
-    static int onRxFrame(void *handle, void *buf, int len);
-    static int onTxFrame(void *handle, const void *buf, int len);
+    static void onRxFrame(void *handle, void *buf, int len);
+    static void onTxFrame(void *handle, void *buf, int len);
     static void MessageSenderStatic(TinyHdlcHelper *helper, int count, std::string msg);
     void MessageSender(int count, std::string msg);
 };

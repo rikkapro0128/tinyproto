@@ -47,8 +47,8 @@ enum
     RX_DATA_READY_BIT = 0x08,
 };
 
-static int on_frame_read(void *user_data, void *data, int len);
-static int on_frame_sent(void *user_data, const void *data, int len);
+static void on_frame_read(void *user_data, uint8_t *data, int len);
+static void on_frame_send(void *user_data, const uint8_t *data, int len);
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -57,7 +57,7 @@ hdlc_handle_t hdlc_init(hdlc_struct_t *hdlc_info)
     hdlc_ll_init_t init = { 0 };
     init.crc_type = hdlc_info->crc_type;
     init.on_frame_read = on_frame_read;
-    init.on_frame_sent = on_frame_sent;
+    init.on_frame_send = on_frame_send;
     init.buf = hdlc_info->rx_buf;
     init.buf_size = hdlc_info->rx_buf_size;
     init.user_data = hdlc_info;
@@ -94,16 +94,15 @@ void hdlc_reset(hdlc_handle_t handle)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-static int on_frame_sent(void *user_data, const void *data, int len)
+static void on_frame_send(void *user_data, const uint8_t *data, int len)
 {
     hdlc_handle_t handle = (hdlc_handle_t)user_data;
-    if ( handle->on_frame_sent )
+    if ( handle->on_frame_send )
     {
-        handle->on_frame_sent(handle->user_data, data, len);
+        handle->on_frame_send(handle->user_data, data, len);
     }
     tiny_events_set(&handle->events, TX_DATA_SENT_BIT);
     tiny_events_set(&handle->events, TX_ACCEPT_BIT);
-    return TINY_SUCCESS;
 }
 
 static void hdlc_send_terminate(hdlc_handle_t handle)
@@ -261,7 +260,7 @@ int hdlc_send(hdlc_handle_t handle, const void *data, int len, uint32_t timeout)
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-static int on_frame_read(void *user_data, void *data, int len)
+static void on_frame_read(void *user_data, uint8_t *data, int len)
 {
     hdlc_handle_t handle = (hdlc_handle_t)user_data;
     if ( handle->on_frame_read )
@@ -271,7 +270,6 @@ static int on_frame_read(void *user_data, void *data, int len)
     // Set bit indicating that we have read and processed the frame
     handle->rx_len = len;
     tiny_events_set(&handle->events, RX_DATA_READY_BIT);
-    return TINY_SUCCESS;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

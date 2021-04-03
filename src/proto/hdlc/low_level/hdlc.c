@@ -73,7 +73,7 @@ int hdlc_ll_init(hdlc_ll_handle_t *handle, hdlc_ll_init_t *init)
     (*handle)->rx_buf_size = init->buf_size - sizeof(hdlc_ll_data_t);
     (*handle)->crc_type = init->crc_type == HDLC_CRC_OFF ? 0 : init->crc_type;
     (*handle)->on_frame_read = init->on_frame_read;
-    (*handle)->on_frame_sent = init->on_frame_sent;
+    (*handle)->on_frame_send = init->on_frame_send;
     (*handle)->user_data = init->user_data;
     (*handle)->phys_mtu = init->mtu ? (init->mtu + get_crc_field_size((*handle)->crc_type)): ((*handle)->rx_buf_size);
     (*handle)->rx.frame_buf = (*handle)->rx_buf;
@@ -89,9 +89,9 @@ int hdlc_ll_close(hdlc_ll_handle_t handle)
 {
     if ( handle && handle->tx.data )
     {
-        if ( handle->on_frame_sent )
+        if ( handle->on_frame_send )
         {
-            handle->on_frame_sent(handle->user_data, handle->tx.origin_data,
+            handle->on_frame_send(handle->user_data, handle->tx.origin_data,
                                   (int)(handle->tx.data - handle->tx.origin_data) + handle->tx.len);
         }
     }
@@ -261,9 +261,9 @@ static int hdlc_ll_send_end(hdlc_ll_handle_t handle)
         const void *ptr = handle->tx.origin_data;
         handle->tx.origin_data = NULL;
         handle->tx.data = NULL;
-        if ( handle->on_frame_sent )
+        if ( handle->on_frame_send )
         {
-            handle->on_frame_sent(handle->user_data, ptr, len);
+            handle->on_frame_send(handle->user_data, ptr, len);
         }
     }
     return result;

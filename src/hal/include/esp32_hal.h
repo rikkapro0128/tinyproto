@@ -36,6 +36,8 @@
 #define CONFIG_ENABLE_FCS32
 #endif
 
+#define CONFIG_TINYHAL_THREAD_SUPPORT 1
+
 /**
  * Mutex type used by Tiny Protocol implementation.
  * The type declaration depends on platform.

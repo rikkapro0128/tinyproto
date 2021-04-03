@@ -30,7 +30,7 @@ TinyHdlcHelper::TinyHdlcHelper(FakeEndpoint *endpoint, const std::function<void(
     m_handle.user_data = this;
     m_handle.send_tx = write_data;
     m_handle.on_frame_read = onRxFrame;
-    m_handle.on_frame_sent = onTxFrame;
+    m_handle.on_frame_send = onTxFrame;
     m_handle.rx_buf = malloc(rx_buf_size);
     m_handle.rx_buf_size = rx_buf_size;
     m_handle.crc_type = crc;

@@ -123,7 +123,7 @@ extern "C"
         /// Callback to process received frames
         on_frame_cb_t on_frame_cb;
         /// Callback to get notification of sent frames
-        on_frame_cb_t on_sent_cb;
+        on_frame_send_cb_t on_send_cb;
         /// Timeout for operations with acknowledge
         uint16_t send_timeout;
         /// Timeout before retrying resend I-frames

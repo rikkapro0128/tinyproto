@@ -30,7 +30,7 @@ TinyHelperFd::TinyHelperFd(FakeEndpoint *endpoint, int rxBufferSize,
     //    init.read_func        = read_data;
     init.pdata = this;
     init.on_frame_cb = onRxFrame;
-    init.on_sent_cb = onTxFrame;
+    init.on_send_cb = onTxFrame;
     init.buffer = m_buffer;
     init.buffer_size = rxBufferSize;
     init.window_frames = window_frames ?: 7;
@@ -117,7 +117,7 @@ void TinyHelperFd::onRxFrame(void *handle, uint8_t *buf, int len)
     }
 }
 
-void TinyHelperFd::onTxFrame(void *handle, uint8_t *buf, int len)
+void TinyHelperFd::onTxFrame(void *handle, const uint8_t *buf, int len)
 {
     TinyHelperFd *helper = reinterpret_cast<TinyHelperFd *>(handle);
     helper->m_tx_count++;

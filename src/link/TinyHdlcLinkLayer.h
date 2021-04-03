@@ -20,20 +20,19 @@
 #pragma once
 
 #include "TinyLinkLayer.h"
-#include "proto/fd/tiny_fd.h"
+#include "proto/hdlc/low_level/hdlc.h"
 
 #include <stdint.h>
-#include <limits.h>
 
 namespace tinyproto
 {
 
-class IFdLinkLayer: public ILinkLayer
+class IHdlcLinkLayer: public ILinkLayer
 {
 public:
-    IFdLinkLayer(void *buffer, int size);
+    IHdlcLinkLayer(void *buffer, int size);
 
-    ~IFdLinkLayer();
+    ~IHdlcLinkLayer();
 
     bool begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata) override;
 
@@ -41,21 +40,14 @@ public:
 
     bool put(void *buf, int size) override;
 
-    int getWindow()
-    {
-        return m_txWindow;
-    }
-
     hdlc_crc_t getCrc()
     {
         return m_crc;
     }
 
-    void setCrc( hdlc_crc_t crc ) { m_crc = crc; }
-
-    void setWindow(int window)
+    void setCrc( hdlc_crc_t crc )
     {
-        m_txWindow = window;
+        m_crc = crc;
     }
 
     void setBuffer(void *buffer, int size)
@@ -71,10 +63,9 @@ protected:
     int getData(uint8_t *data, int size);
 
 private:
-    tiny_fd_handle_t m_handle = nullptr;
+    hdlc_ll_handle_t m_handle = nullptr;
     uint8_t *m_buffer = nullptr;
     int m_bufferSize = 0;
-    uint8_t m_txWindow = 2;
     hdlc_crc_t m_crc = HDLC_CRC_8;
 };
 

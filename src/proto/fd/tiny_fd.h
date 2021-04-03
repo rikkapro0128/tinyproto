@@ -60,7 +60,7 @@ extern "C"
         /// callback function to process incoming frames. Callback is called from tiny_fd_run_rx() context.
         on_frame_cb_t on_frame_cb;
         /// Callback to get notification of sent frames. Callback is called from tiny_fd_run_tx() context.
-        on_frame_cb_t on_sent_cb;
+        on_frame_send_cb_t on_send_cb;
 
         /**
          * buffer to store data during full-duplex protocol operating.
@@ -180,7 +180,7 @@ extern "C"
      * Reads rx data from the communication channel via user callback `read_func()`.
      * Internally this function has 4-byte buffer, and tries to read 4 bytes from the channel.
      * Then received bytes are processed by the protocol. If FD protocol detects new incoming
-     * message then it calls on_sent_callback.
+     * message then it calls on_send_callback.
      * If no data available in the channel, the function returns immediately after read_func() callback
      * returns control.
      *

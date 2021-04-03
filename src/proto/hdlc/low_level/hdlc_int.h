@@ -62,11 +62,8 @@ extern "C"
          * @param user_data user-defined data
          * @param data pointer to received data
          * @param len size of received data in bytes
-         * @return user callback must return negative value in case of error
-         *         or 0 value if packet is successfully processed.
          */
-
-        int (*on_frame_read)(void *user_data, void *data, int len);
+        on_frame_cb_t on_frame_read;
 
         /**
          * User-defined callback, which is called when the packet is sent to TX
@@ -75,10 +72,8 @@ extern "C"
          * @param user_data user-defined data
          * @param data pointer to sent data
          * @param len size of sent data in bytes
-         * @return user callback must return negative value in case of error
-         *         or 0 value if packet is successfully processed.
          */
-        int (*on_frame_sent)(void *user_data, const void *data, int len);
+        on_frame_send_cb_t on_frame_send;
 
         /**
          * Buffer to be used by hdlc level to receive data to

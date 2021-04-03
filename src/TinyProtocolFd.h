@@ -245,7 +245,7 @@ protected:
      * @param pdata pointer to sent data
      * @param size size of sent payload in bytes
      */
-    virtual void onSend(uint8_t *pdata, int size)
+    virtual void onSend(const uint8_t *pdata, int size)
     {
         IPacket pkt((char *)pdata, size);
         pkt.m_len = size;
@@ -283,7 +283,7 @@ private:
     static void onReceiveInternal(void *handle, uint8_t *pdata, int size);
 
     /** Internal function */
-    static void onSendInternal(void *handle, uint8_t *pdata, int size);
+    static void onSendInternal(void *handle, const uint8_t *pdata, int size);
 };
 
 /**

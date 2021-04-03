@@ -17,58 +17,54 @@
     along with Protocol Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "TinyFdLinkLayer.h"
+#include "TinyHdlcLinkLayer.h"
 
 namespace tinyproto
 {
 
-IFdLinkLayer::IFdLinkLayer(void *buffer, int size)
+IHdlcLinkLayer::IHdlcLinkLayer(void *buffer, int size)
     : m_buffer(reinterpret_cast<uint8_t *>(buffer))
     , m_bufferSize(size)
 {
 }
 
-IFdLinkLayer::~IFdLinkLayer()
+IHdlcLinkLayer::~IHdlcLinkLayer()
 {
 }
 
-bool IFdLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata)
+bool IHdlcLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata)
 {
-    tiny_fd_init_t init{};
-    init.pdata = udata;
-    init.on_frame_cb = onReadCb;
-    init.on_send_cb = onSendCb;
-    init.buffer = m_buffer;
-    init.buffer_size = m_bufferSize;
-    init.window_frames = m_txWindow;
-    init.send_timeout = getTimeout();
-    init.retry_timeout = getTimeout() / 4;
-    init.retries = 2;
+    hdlc_ll_init_t init{};
+    init.user_data = udata;
+    init.on_frame_read = onReadCb;
+    init.on_frame_send = onSendCb;
+    init.buf = m_buffer;
+    init.buf_size = m_bufferSize;
     init.crc_type = getCrc();
     init.mtu = getMtu();
-    int result = tiny_fd_init(&m_handle, &init);
+    int result = hdlc_ll_init(&m_handle, &init);
     return result == TINY_SUCCESS;
 }
 
-void IFdLinkLayer::end()
+void IHdlcLinkLayer::end()
 {
-    tiny_fd_close(m_handle);
+    hdlc_ll_close(m_handle);
     m_handle = nullptr;
 }
 
-bool IFdLinkLayer::put(void *buf, int size)
+bool IHdlcLinkLayer::put(void *buf, int size)
 {
-    return tiny_fd_send_packet(m_handle, buf, size) >= 0;
+    return hdlc_ll_put(m_handle, buf, size) >= 0;
 }
 
-int IFdLinkLayer::parseData(const uint8_t *data, int size)
+int IHdlcLinkLayer::parseData(const uint8_t *data, int size)
 {
-    return tiny_fd_on_rx_data(m_handle, data, size);
+    return hdlc_ll_run_rx(m_handle, data, size, nullptr);
 }
 
-int IFdLinkLayer::getData(uint8_t *data, int size)
+int IHdlcLinkLayer::getData(uint8_t *data, int size)
 {
-    return tiny_fd_get_tx_data(m_handle, data, size);
+    return hdlc_ll_run_tx(m_handle, data, size);
 }
 
 /////////////////////////////////////////////////////////////////////////////

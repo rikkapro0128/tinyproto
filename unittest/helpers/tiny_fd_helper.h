@@ -65,6 +65,6 @@ private:
     bool m_stop_sender = false;
 
     static void onRxFrame(void *handle, uint8_t *buf, int len);
-    static void onTxFrame(void *handle, uint8_t *buf, int len);
+    static void onTxFrame(void *handle, const uint8_t *buf, int len);
     static void MessageSender(TinyHelperFd *helper, int count, std::string message);
 };

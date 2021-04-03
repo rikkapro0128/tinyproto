@@ -33,7 +33,7 @@ typedef struct
     int mtu;
     int window_size;
     void *buffer;
-    PyObject *on_frame_sent;
+    PyObject *on_frame_send;
     PyObject *on_frame_read;
     PyObject *read_func;
     PyObject *write_func;
@@ -49,7 +49,7 @@ static PyMemberDef Fd_members[] = {
 static void Fd_dealloc(Fd *self)
 {
     Py_XDECREF(self->on_frame_read);
-    Py_XDECREF(self->on_frame_sent);
+    Py_XDECREF(self->on_frame_send);
     Py_XDECREF(self->read_func);
     Py_XDECREF(self->write_func);
     Py_TYPE(self)->tp_free((PyObject *)self);
@@ -60,7 +60,7 @@ static int Fd_init(Fd *self, PyObject *args, PyObject *kwds)
     self->handle = NULL;
     self->buffer = NULL;
     self->crc_type = HDLC_CRC_16;
-    self->on_frame_sent = NULL;
+    self->on_frame_send = NULL;
     self->on_frame_read = NULL;
     self->read_func = NULL;
     self->write_func = NULL;
@@ -96,13 +96,13 @@ static void on_frame_read(void *user_data, uint8_t *data, int len)
     }
 }
 
-static void on_frame_sent(void *user_data, uint8_t *data, int len)
+static void on_frame_send(void *user_data, const uint8_t *data, int len)
 {
     Fd *self = (Fd *)user_data;
-    if ( self->on_frame_sent )
+    if ( self->on_frame_send )
     {
         PyObject *arg = PyByteArray_FromStringAndSize((const char *)data, (Py_ssize_t)len);
-        PyObject *temp = PyObject_CallFunctionObjArgs(self->on_frame_sent, arg, NULL);
+        PyObject *temp = PyObject_CallFunctionObjArgs(self->on_frame_send, arg, NULL);
         Py_XDECREF(temp); // Dereference result
         Py_DECREF(arg);   // We do not need ByteArray anymore
     }
@@ -115,7 +115,7 @@ static PyObject *Fd_begin(Fd *self)
     tiny_fd_init_t init{};
     init.pdata = self;
     init.on_frame_cb = on_frame_read;
-    init.on_sent_cb = on_frame_sent;
+    init.on_send_cb = on_frame_send;
     init.crc_type = self->crc_type;
     init.buffer_size = tiny_fd_buffer_size_by_mtu_ex(self->mtu, self->window_size, init.crc_type, 2);
     self->buffer = PyObject_Malloc(init.buffer_size);
@@ -309,15 +309,15 @@ static int Fd_set_on_read(Fd *self, PyObject *value, void *closure)
 
 static PyObject *Fd_get_on_send(Fd *self, void *closure)
 {
-    Py_INCREF(self->on_frame_sent);
-    return self->on_frame_sent;
+    Py_INCREF(self->on_frame_send);
+    return self->on_frame_send;
 }
 
 static int Fd_set_on_send(Fd *self, PyObject *value, void *closure)
 {
-    PyObject *tmp = self->on_frame_sent;
+    PyObject *tmp = self->on_frame_send;
     Py_INCREF(value);
-    self->on_frame_sent = value;
+    self->on_frame_send = value;
     Py_XDECREF(tmp);
     return 0;
 }

@@ -34,7 +34,7 @@ public:
     /**
      *
      */
-    virtual bool begin(on_frame_cb_t onReadCb, on_frame_cb_t onSendCb, void *udata) = 0;
+    virtual bool begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata) = 0;
 
     virtual void end() = 0;
 

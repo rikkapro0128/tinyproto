@@ -162,39 +162,22 @@ static int run_fd(tiny_serial_handle_t port)
     proto.setLink( serial );
     serial.setMtu( s_packetSize );
     serial.setCrc( s_crc );
-    // Set window size to 4 frames. This should be the same value, used by other size
     serial.setWindow( s_windowSize );
-    // Set send timeout to 1000ms as we are going to use multithread mode
     // With generator mode it is ok to send with timeout from run_fd() function
     // But in loopback mode (!generator), we must resend frames from receiveCallback as soon as possible, use no timeout
     // then
     serial.setTimeout( 100 );
+    // Wait for additional 1500 ms after opening serial port if communicating with an Arduino
+    // Some boards activate bootloader if to send something when board reboots
+    if ( s_isArduinoBoard )
+    {
+        proto.setTxDelay( 1500 );
+    }
 
     if ( !proto.begin() )
     {
          return -1;
     }
-
-    std::thread rxThread(
-        [](tinyproto::Proto &proto) -> void {
-            while ( !s_terminate )
-            {
-                proto.getLink().runRx();
-            }
-        },
-        std::ref(proto));
-    std::thread txThread(
-        [](tinyproto::Proto &proto) -> void {
-            if ( s_isArduinoBoard )
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-            }
-            while ( !s_terminate )
-            {
-                proto.getLink().runTx();
-            }
-        },
-        std::ref(proto));
 
     auto startTs = std::chrono::steady_clock::now();
     auto progressTs = startTs;
@@ -254,8 +237,8 @@ static int run_fd(tiny_serial_handle_t port)
             }
         }
     }
-    rxThread.join();
-    txThread.join();
+//    rxThread.join();
+//    txThread.join();
     proto.end();
     return 0;
 }

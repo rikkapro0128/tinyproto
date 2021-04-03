@@ -34,9 +34,14 @@
 #include "link/TinyLinkLayer.h"
 #include "link/TinySerialFdLink.h"
 
+#include "hal/tiny_types.h"
+
 #include <stdint.h>
 #include <limits.h>
-//#include <threads>
+
+#if CONFIG_TINYHAL_THREAD_SUPPORT == 1
+#include <thread>
+#endif
 
 namespace tinyproto
 {
@@ -60,21 +65,38 @@ public:
 
     void end();
 
+#if CONFIG_TINYHAL_THREAD_SUPPORT == 1
+    void setTxDelay( uint32_t delay );
+#endif
+
 private:
     ILinkLayer *m_link = nullptr;
     bool m_multithread = false;
     uint8_t *m_message = nullptr;
     int m_messageLen;
+    bool m_terminate = true;
+#if CONFIG_TINYHAL_THREAD_SUPPORT == 1
+    std::thread *m_sendThread = nullptr;
+    std::thread *m_readThread = nullptr;
+    uint32_t m_txDelay = 0;
+#endif
 
     tiny_events_t m_events{};
 
     void onRead(uint8_t *buf, int len);
 
-    void onSend(uint8_t *buf, int len);
+    void onSend(const uint8_t *buf, int len);
 
     static void onReadCb(void *udata, uint8_t *buf, int len);
 
-    static void onSendCb(void *udata, uint8_t *buf, int len);
+    static void onSendCb(void *udata, const uint8_t *buf, int len);
+
+#if CONFIG_TINYHAL_THREAD_SUPPORT == 1
+    void runTx();
+
+    void runRx();
+#endif
+
 };
 
 

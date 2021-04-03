@@ -70,14 +70,14 @@ HDLC callbacks:
 @code{.cpp}
 int write_func_cb(void *user_data, const void *data, int len);
 int on_frame_read(void *user_data, void *data, int len);
-int on_frame_sent(void *user_data, const void *data, int len);
+int on_frame_send(void *user_data, void *data, int len);
 @endcode
 
  - write_func_cb() is called by HDLC implementation every time, it needs to
    send bytes to TX channel
  - on_frame_read() is called by HDLC implementation every time, new frame arrives
    and checksum is correct.
- - on_frame_sent() is called by HDLC implementation every time, new frame is sent
+ - on_frame_send() is called by HDLC implementation every time, new frame is sent
    to TX.
 HDLC protocol requires only write_func_cb() to be defined. Other callbacks are optional.
 As for RX processes, your application code is responsible for reading data from RX line,
@@ -92,7 +92,7 @@ The list of callbacks:
 int write_func_cb(void *user_data, const void *data, int len);
 int read_func_cb(void *user_data, void *data, int len);
 int on_frame_read(void *user_data, void *data, int len);
-int on_frame_sent(void *user_data, const void *data, int len);
+int on_frame_send(void *user_data, void *data, int len);
 @endcode
 
 Unlike HDLC implementation, higher level protocols use different approach. They control both

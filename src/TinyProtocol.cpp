@@ -25,7 +25,7 @@ namespace tinyproto
 enum
 {
     PROTO_RX_MESSAGE = 1,
-    PROTO_RX_QUEUE_FREE = 1,
+    PROTO_RX_QUEUE_FREE = 2,
 };
 
 Proto::Proto(bool multithread)
@@ -37,6 +37,7 @@ Proto::Proto(bool multithread)
 
 Proto::~Proto()
 {
+    end();
     tiny_events_destroy( &m_events );
 }
 
@@ -63,7 +64,20 @@ bool Proto::begin()
         timeout = 0;
     }
     m_link->setTimeout( timeout );
-    return m_link->begin(onReadCb, onSendCb, this);
+    if (! m_link->begin(onReadCb, onSendCb, this))
+    {
+        m_terminate = true;
+        return false;
+    }
+#if CONFIG_TINYHAL_THREAD_SUPPORT == 1
+    if ( m_multithread )
+    {
+        m_terminate = false;
+        m_readThread = new std::thread(&Proto::runRx, this);
+        m_sendThread = new std::thread(&Proto::runTx, this);
+    }
+#endif
+    return true;
 }
 
 bool Proto::send(const IPacket &packet, uint32_t timeout)
@@ -129,6 +143,23 @@ bool Proto::read(IPacket &packet, uint32_t timeout)
 
 void Proto::end()
 {
+    if ( m_terminate )
+    {
+        return;
+    }
+    m_terminate = true;
+#if CONFIG_TINYHAL_THREAD_SUPPORT == 1
+    if ( m_sendThread )
+    {
+        m_sendThread->join();
+        m_sendThread = nullptr;
+    }
+    if ( m_readThread )
+    {
+        m_readThread->join();
+        m_readThread = nullptr;
+    }
+#endif
     m_link->end();
     return;
 }
@@ -146,7 +177,7 @@ void Proto::onRead(uint8_t *buf, int len)
     tiny_events_set( &m_events, PROTO_RX_MESSAGE );
 }
 
-void Proto::onSend(uint8_t *buf, int len)
+void Proto::onSend(const uint8_t *buf, int len)
 {
 }
 
@@ -156,12 +187,41 @@ void Proto::onReadCb(void *udata, uint8_t *buf, int len)
     proto->onRead(buf, len);
 }
 
-void Proto::onSendCb(void *udata, uint8_t *buf, int len)
+void Proto::onSendCb(void *udata, const uint8_t *buf, int len)
 {
     Proto *proto = reinterpret_cast<Proto *>(udata);
     proto->onSend(buf, len);
 }
 
+#if CONFIG_TINYHAL_THREAD_SUPPORT == 1
+void Proto::runTx()
+{
+    if (m_multithread)
+    {
+        tiny_sleep( m_txDelay );
+        while ( !m_terminate )
+        {
+            getLink().runTx();
+        }
+    }
+}
+
+void Proto::runRx()
+{
+    if (m_multithread)
+    {
+        while ( !m_terminate )
+        {
+            getLink().runRx();
+        }
+    }
+}
+
+void Proto::setTxDelay( uint32_t delay )
+{
+    m_txDelay = delay;
+}
+#endif
 
 #if defined(ARDUINO)
 

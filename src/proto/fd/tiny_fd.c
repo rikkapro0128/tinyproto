@@ -63,8 +63,8 @@ enum
 
 static const uint8_t seq_bits_mask = 0x07;
 
-static int on_frame_read(void *user_data, void *data, int len);
-static int on_frame_sent(void *user_data, const void *data, int len);
+static void on_frame_read(void *user_data, uint8_t *data, int len);
+static void on_frame_send(void *user_data, const uint8_t *data, int len);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -217,11 +217,11 @@ static void __confirm_sent_frames(tiny_fd_handle_t handle, uint8_t nr)
             break;
         }
         // LOG("[%p] Confirming sent frames %d\n", handle, handle->frames.confirm_ns);
-        if ( handle->on_sent_cb )
+        if ( handle->on_send_cb )
         {
             uint8_t i = handle->frames.head_ptr;
             tiny_mutex_unlock(&handle->frames.mutex);
-            handle->on_sent_cb(handle->user_data, &handle->frames.i_frames[i]->user_payload,
+            handle->on_send_cb(handle->user_data, &handle->frames.i_frames[i]->user_payload,
                                handle->frames.i_frames[i]->len);
             tiny_mutex_lock(&handle->frames.mutex);
         }
@@ -412,7 +412,7 @@ static int __on_u_frame_read(tiny_fd_handle_t handle, void *data, int len)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static int on_frame_read(void *user_data, void *data, int len)
+static void on_frame_read(void *user_data, uint8_t *data, int len)
 {
     tiny_fd_handle_t handle = (tiny_fd_handle_t)user_data;
     // printf("[%p] Incoming frame of size %i\n", handle, len);
@@ -420,7 +420,7 @@ static int on_frame_read(void *user_data, void *data, int len)
     if ( len < 2 )
     {
         LOG(TINY_LOG_WRN, "FD: received too small frame\n");
-        return TINY_ERR_FAILED;
+        return;
     }
     tiny_mutex_lock(&handle->frames.mutex);
     handle->frames.ka_confirmed = 1;
@@ -453,10 +453,9 @@ static int on_frame_read(void *user_data, void *data, int len)
         LOG(TINY_LOG_WRN, "[%p] Unknown hdlc frame received\n", handle);
     }
     tiny_mutex_unlock(&handle->frames.mutex);
-    return len;
 }
 
-static int on_frame_sent(void *user_data, const void *data, int len)
+static void on_frame_send(void *user_data, const uint8_t *data, int len)
 {
     tiny_fd_handle_t handle = (tiny_fd_handle_t)user_data;
     uint8_t control = ((uint8_t *)data)[1];
@@ -480,7 +479,6 @@ static int on_frame_sent(void *user_data, const void *data, int len)
     }
     tiny_mutex_unlock(&handle->frames.mutex);
     tiny_events_clear(&handle->frames.events, FD_EVENT_TX_SENDING);
-    return len;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -560,7 +558,7 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     /* Lets allocate memory for HDLC low level protocol */
     hdlc_ll_init_t _init = { 0 };
     _init.on_frame_read = on_frame_read;
-    _init.on_frame_sent = on_frame_sent;
+    _init.on_frame_send = on_frame_send;
     _init.user_data = protocol;
     _init.crc_type = init->crc_type;
     _init.buf_size = (uint8_t *)init->buffer + init->buffer_size - ptr;
@@ -583,7 +581,7 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
 
     protocol->user_data = init->pdata;
     protocol->on_frame_cb = init->on_frame_cb;
-    protocol->on_sent_cb = init->on_sent_cb;
+    protocol->on_send_cb = init->on_send_cb;
     protocol->send_timeout = init->send_timeout;
     protocol->ka_timeout = 5000;
     protocol->retry_timeout =

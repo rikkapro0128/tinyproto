@@ -37,7 +37,7 @@ void IFd::onReceiveInternal(void *handle, uint8_t *pdata, int size)
     (reinterpret_cast<IFd *>(handle))->onReceive(pdata, size);
 }
 
-void IFd::onSendInternal(void *handle, uint8_t *pdata, int size)
+void IFd::onSendInternal(void *handle, const uint8_t *pdata, int size)
 {
     (reinterpret_cast<IFd *>(handle))->onSend(pdata, size);
 }
@@ -47,7 +47,7 @@ void IFd::begin()
     tiny_fd_init_t init{};
     init.pdata = this;
     init.on_frame_cb = onReceiveInternal;
-    init.on_sent_cb = onSendInternal;
+    init.on_send_cb = onSendInternal;
     init.buffer = m_buffer;
     init.buffer_size = m_bufferSize;
     init.window_frames = m_window;
