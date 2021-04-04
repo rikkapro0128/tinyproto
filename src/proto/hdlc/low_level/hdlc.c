@@ -405,7 +405,11 @@ static int hdlc_ll_read_data(hdlc_ll_handle_t handle, const uint8_t *data, int l
                 *handle->rx.data = byte;
             }
             handle->rx.data++;
-            // LOG(TINY_LOG_DEB, "%02X\n", handle->rx.data[ handle->rx.len ]);
+        }
+        else
+        {
+            LOG(TINY_LOG_WRN, "[HDLC:%p] No space for incoming byte: len=%i (mtu = %i)\n",
+                              handle, (int)(handle->rx.data - handle->rx.frame_buf), handle->phys_mtu);
         }
         result++;
         data++;

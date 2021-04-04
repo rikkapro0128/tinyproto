@@ -57,7 +57,7 @@ bool Proto::begin()
     uint32_t timeout = m_link->getTimeout();
     if ( m_multithread && !timeout )
     {
-        timeout = 100;
+        timeout = 1000;
     }
     else if ( !m_multithread)
     {

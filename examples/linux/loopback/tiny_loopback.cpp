@@ -33,7 +33,6 @@ enum class protocol_type_t : uint8_t
 
 static hdlc_crc_t s_crc = HDLC_CRC_8;
 static char *s_port = nullptr;
-static bool s_generatorEnabled = false;
 static bool s_loopbackMode = true;
 static protocol_type_t s_protocol = protocol_type_t::FD;
 static int s_packetSize = 32;
@@ -122,8 +121,7 @@ static int parse_args(int argc, char *argv[])
         }
         else if ( (!strcmp(argv[i], "-g")) || (!strcmp(argv[i], "--generator")) )
         {
-            s_generatorEnabled = true;
-            s_loopbackMode = !s_generatorEnabled;
+            s_loopbackMode = false;
         }
         else if ( (!strcmp(argv[i], "-r")) || (!strcmp(argv[i], "--run-test")) )
         {
@@ -189,47 +187,53 @@ static int run_fd(tiny_serial_handle_t port)
     /* Run main cycle forever */
     while ( !s_terminate )
     {
-        // RX
+        if ( s_loopbackMode )
         {
             tinyproto::HeapPacket packet(s_packetSize);
-            if ( proto.read( packet, 10 ) )
+            // Use timeout of 100 milliseconds, since we don't want to create busy loop
+            if ( proto.read( packet, 100 ) )
+            {
+                if ( !s_runTest )
+                    fprintf(stderr, "<<< Frame received payload len=%d\n", packet.size());
+                s_receivedBytes += static_cast<int>(packet.size());
+                if ( !proto.send( packet, 0 ) )
+                {
+                    fprintf(stderr, "Failed to loopback packet\n");
+                }
+                else
+                {
+                    if ( !s_runTest )
+                        fprintf(stderr, ">>> Frame sent payload len=%d\n", packet.size());
+                    s_sentBytes += packet.size();
+                }
+            }
+        }
+        else
+        {
+            tinyproto::IPacket packet;
+            // Use timeout 0. If remote side is not ready yet, attempt to send packet
+            if ( proto.read( packet, 0 ) )
             {
                 if ( !s_runTest )
                     fprintf(stderr, "<<< Frame received payload len=%d\n", (int)packet.size());
                 s_receivedBytes += static_cast<int>(packet.size());
-                if ( !s_generatorEnabled )
-                {
-                    if ( !proto.send( packet, 1000 ) )
-                    {
-                        fprintf(stderr, "Failed to send packet\n");
-                    }
-                    else
-                    {
-                        if ( !s_runTest )
-                            fprintf(stderr, ">>> Frame sent payload len=%d\n", (int)packet.size());
-                        s_sentBytes += static_cast<int>(packet.size());
-                    }
-                }
             }
-//            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-        // TX
-        if ( s_generatorEnabled )
-        {
-            tinyproto::HeapPacket packet(s_packetSize);
-            packet.put("New frame. Send in progress");
-            if ( !proto.send(packet, 1000) )
+            tinyproto::HeapPacket outPacket(s_packetSize);
+            while ( outPacket.size() < s_packetSize )
+                outPacket.put("Generated frame. test in progress...");
+            // Use timeout of 100 milliseconds, since we don't want busy loop
+            if ( !proto.send(outPacket, 100) )
             {
                 fprintf(stderr, "Failed to send packet\n");
             }
             else
             {
                 if ( !s_runTest )
-                    fprintf(stderr, ">>> Frame sent payload len=%d\n", (int)packet.size());
-                s_sentBytes += static_cast<int>(packet.size());
+                    fprintf(stderr, ">>> Frame sent payload len=%d\n", (int)outPacket.size());
+                s_sentBytes += static_cast<int>(outPacket.size());
             }
         }
-        if ( s_runTest && s_generatorEnabled )
+        if ( s_runTest && !s_loopbackMode )
         {
             auto ts = std::chrono::steady_clock::now();
             if ( ts - startTs >= std::chrono::seconds(15) )
@@ -269,7 +273,7 @@ static int run_light(tiny_serial_handle_t port)
                     s_receivedBytes += packet.size();
                     if ( !s_runTest )
                         fprintf(stderr, "<<< Frame received payload len=%d\n", (int)packet.size());
-                    if ( !s_generatorEnabled )
+                    if ( s_loopbackMode )
                     {
                         if ( proto.write(packet) < 0 )
                         {
@@ -287,10 +291,11 @@ static int run_light(tiny_serial_handle_t port)
     /* Run main cycle forever */
     while ( !s_terminate )
     {
-        if ( s_generatorEnabled )
+        if ( !s_loopbackMode )
         {
             tinyproto::HeapPacket packet(s_packetSize);
-            packet.put("Generated frame. test in progress");
+            while ( packet.size() < s_packetSize )
+                packet.put("Generated frame. test in progress...");
             if ( proto.write(packet) < 0 )
             {
                 fprintf(stderr, "Failed to send packet\n");
@@ -306,7 +311,7 @@ static int run_light(tiny_serial_handle_t port)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
-        if ( s_runTest && s_generatorEnabled )
+        if ( s_runTest && !s_loopbackMode )
         {
             auto ts = std::chrono::steady_clock::now();
             if ( ts - startTs >= std::chrono::seconds(15) )

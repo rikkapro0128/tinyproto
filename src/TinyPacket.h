@@ -53,7 +53,7 @@ public:
      * @param size - size of the buffer to hold packet data
      * @note passed buffer must exist all lifecycle of the Packet object.
      */
-    IPacket(char *buf, size_t size)
+    IPacket(char *buf, int size)
     {
         m_len = 0;
         m_size = static_cast<int>(size);
@@ -146,8 +146,11 @@ public:
      */
     inline void put(const char *str)
     {
-        strncpy((char *)&m_buf[m_len], str, m_size - m_len);
-        m_len += static_cast<int>(strlen(str));
+        int room = m_size - m_len - 1;
+        if ( !room ) return;
+        int strSize = static_cast<int>(strlen(str));
+        strncpy((char *)&m_buf[m_len], str, room);
+        m_len += strSize < room ? strSize : room;
         m_buf[m_len++] = 0;
     }
 
@@ -222,7 +225,7 @@ public:
      * Returns size of payload data in the received packet.
      * @return size of payload data.
      */
-    inline size_t size() const
+    inline int size() const
     {
         return m_len;
     }
@@ -231,7 +234,7 @@ public:
      * Returns maximum size of packet buffer.
      * @return max size of packet buffer.
      */
-    inline size_t maxSize() const
+    inline int maxSize() const
     {
         return m_size;
     }
@@ -248,7 +251,7 @@ public:
     /**
      * You may refer to Packet payload data directly by using operator []
      */
-    uint8_t &operator[](size_t idx)
+    uint8_t &operator[](int idx)
     {
         return m_buf[idx];
     }
@@ -276,7 +279,7 @@ private:
  * Template  class to create packet with static allocation of buffer
  * Use this class for microcontrollers with few resources.
  */
-template <size_t S> class Packet: public IPacket
+template <int S> class Packet: public IPacket
 {
 public:
     /**
