@@ -29,32 +29,36 @@
 namespace tinyproto
 {
 
-#if defined(ARDUINO)
-
-template <int MTU, int TX_WINDOW, int RX_WINDOW, int BLOCK> class StaticSerialFdLinkLayer: public ISerialLinkLayer<IFdLinkLayer, BLOCK>
+template <int MTU, int TX_WINDOW, int BUFFER_SIZE, int BLOCK> class StaticSerialFdLinkLayer: public ISerialLinkLayer<IFdLinkLayer, BLOCK>
 {
 public:
     StaticSerialFdLinkLayer(char *dev)
-        : ISerialLinkLayer<IFdLinkLayer, BLOCK>(dev, this->m_buffer, FD_BUF_SIZE_EX(MTU, TX_WINDOW, HDLC_CRC_16, RX_WINDOW))
+        : ISerialLinkLayer<IFdLinkLayer, BLOCK>(dev, this->m_buffer, BUFFER_SIZE)
     {
         this->setMtu(MTU);
         this->setWindow(TX_WINDOW);
     }
 
 private:
-    uint8_t m_buffer[FD_BUF_SIZE_EX(MTU, TX_WINDOW, HDLC_CRC_16, RX_WINDOW)];
+    uint8_t m_buffer[BUFFER_SIZE];
 };
 
-class SerialFdLink: public StaticSerialFdLinkLayer<16, 2, 2, 4>
+
+#if defined(ARDUINO)
+
+/** Valid only for Arduino IDE, since it has access to internal headers */
+template <int MTU, int TX_WINDOW, int RX_WINDOW, int BLOCK> using ArduinoStaticSerialFdLinkLayer = StaticSerialFdLinkLayer<MTU, TX_WINDOW, FD_BUF_SIZE_EX(MTU, TX_WINDOW, HDLC_CRC_16, RX_WINDOW), BLOCK>;
+
+class ArduinoSerialFdLink: public ArduinoStaticSerialFdLinkLayer<32, 2, 2, 4>
 {
 public:
-    SerialFdLink(HardwareSerial *dev)
-        : StaticSerialFdLinkLayer(reinterpret_cast<char *>(dev))
+    ArduinoSerialFdLink(HardwareSerial *dev)
+        : ArduinoStaticSerialFdLinkLayer<32, 2, 2, 4>(reinterpret_cast<char *>(dev))
     {
     }
 };
 
-#else
+#endif
 
 class SerialFdLink: public ISerialLinkLayer<IFdLinkLayer, 128>
 {
@@ -73,7 +77,5 @@ public:
 private:
     uint8_t *m_buffer = nullptr;
 };
-
-#endif
 
 } // namespace tinyproto

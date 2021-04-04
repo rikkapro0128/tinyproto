@@ -23,9 +23,9 @@
 namespace tinyproto
 {
 
-#if defined(ARDUINO)
+//#if defined(ARDUINO)
 
-#else
+//#else
 
 SerialFdLink::~SerialFdLink()
 {
@@ -53,6 +53,6 @@ void SerialFdLink::end()
     }
 }
 
-#endif
+//#endif
 
 } // namespace tinyproto

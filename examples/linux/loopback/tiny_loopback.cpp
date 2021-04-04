@@ -36,7 +36,7 @@ static char *s_port = nullptr;
 static bool s_generatorEnabled = false;
 static bool s_loopbackMode = true;
 static protocol_type_t s_protocol = protocol_type_t::FD;
-static int s_packetSize = 64;
+static int s_packetSize = 32;
 static int s_windowSize = 7;
 static bool s_terminate = false;
 static bool s_runTest = false;
@@ -57,7 +57,7 @@ static void print_help()
     fprintf(stderr, "                               light - full duplex\n");
     fprintf(stderr, "    -c <crc>, --crc <crc>      crc type: 0, 8, 16, 32\n");
     fprintf(stderr, "    -g, --generator            turn on packet generating\n");
-    fprintf(stderr, "    -s, --size                 packet size: 64 (by default)\n");
+    fprintf(stderr, "    -s, --size                 packet size: 32 (by default)\n");
     fprintf(stderr, "    -w, --window               window size: 7 (by default)\n");
     fprintf(stderr, "    -r, --run-test             run 15 seconds speed test\n");
     fprintf(stderr, "    -a, --arduino-tty          delay test start by 2 seconds for Arduino ttyUSB interfaces\n");

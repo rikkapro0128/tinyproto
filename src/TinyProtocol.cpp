@@ -223,7 +223,20 @@ void Proto::setTxDelay( uint32_t delay )
 }
 #endif
 
+//////////// Platform specific helper classes
+
 #if defined(ARDUINO)
+
+SerialFdProto::SerialFdProto(HardwareSerial &port)
+    : Proto( false )
+    , m_layer( &port )
+{
+}
+
+ArduinoSerialFdLink &SerialFdProto::getLink()
+{
+    return m_layer;
+}
 
 #else
 
@@ -233,7 +246,6 @@ SerialFdProto::SerialFdProto(char *dev, bool multithread)
 {
     setLink( m_layer );
 }
-
 
 SerialFdLink &SerialFdProto::getLink()
 {

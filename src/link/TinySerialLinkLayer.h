@@ -71,6 +71,11 @@ public:
         }
     }
 
+    void setSpeed( int speed )
+    {
+        m_speed = speed;
+    }
+
 private:
     int m_speed = 115200;
     tinyproto::Serial m_serial;

@@ -99,7 +99,21 @@ private:
 
 };
 
+/////// Helper classes, platform specific
 
+#if defined(ARDUINO)
+
+class SerialFdProto: public Proto
+{
+public:
+    SerialFdProto(HardwareSerial &port);
+
+    ArduinoSerialFdLink &getLink();
+
+private:
+    ArduinoSerialFdLink m_layer;
+};
+#else
 
 class SerialFdProto: public Proto
 {
@@ -111,6 +125,6 @@ public:
 private:
     SerialFdLink m_layer;
 };
-
+#endif
 
 } // namespace tinyproto
