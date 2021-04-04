@@ -82,6 +82,8 @@ extern "C"
 #define TINY_ERR_AGAIN (-7)
 /// Invalid crc field of incoming frame
 #define TINY_ERR_WRONG_CRC (-8)
+/// Out of memory during operation
+#define TINY_ERR_OUT_OF_MEMORY (-9)
 
 /** @} */
 

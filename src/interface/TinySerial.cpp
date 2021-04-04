@@ -41,7 +41,7 @@ void Serial::setTimeout(uint32_t timeoutMs)
     m_timeoutMs = timeoutMs;
 }
 
-bool Serial::begin(int speed)
+bool Serial::begin(uint32_t speed)
 {
     m_handle = tiny_serial_open(m_dev, speed);
     return m_handle != TINY_SERIAL_INVALID;

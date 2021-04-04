@@ -40,7 +40,7 @@ public:
 
     void setTimeout(uint32_t timeoutMs);
 
-    bool begin(int speed);
+    bool begin(uint32_t speed);
 
     void end();
 

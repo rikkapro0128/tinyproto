@@ -71,13 +71,13 @@ public:
         }
     }
 
-    void setSpeed( int speed )
+    void setSpeed( uint32_t speed )
     {
         m_speed = speed;
     }
 
 private:
-    int m_speed = 115200;
+    uint32_t m_speed = 115200;
     tinyproto::Serial m_serial;
 };
 

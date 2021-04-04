@@ -64,7 +64,7 @@ bool Proto::begin()
         timeout = 0;
     }
     m_link->setTimeout( timeout );
-    if (! m_link->begin(onReadCb, onSendCb, this))
+    if (!m_link->begin(onReadCb, onSendCb, this))
     {
         m_terminate = true;
         return false;
@@ -128,14 +128,15 @@ bool Proto::read(IPacket &packet, uint32_t timeout)
             result = TINY_SUCCESS;
             break;
         }
-        if ( static_cast<uint32_t>(tiny_millis() - startTs) >= timeout )
-        {
-            break;
-        }
+        // Always run Tx/Rx loop before checking timings, otherwise messages will be never received
         if ( !m_multithread )
         {
             m_link->runTx();
             m_link->runRx();
+        }
+        if ( static_cast<uint32_t>(tiny_millis() - startTs) >= timeout )
+        {
+            break;
         }
     }
     return result == TINY_SUCCESS;
@@ -231,6 +232,7 @@ SerialFdProto::SerialFdProto(HardwareSerial &port)
     : Proto( false )
     , m_layer( &port )
 {
+    setLink( m_layer );
 }
 
 ArduinoSerialFdLink &SerialFdProto::getLink()

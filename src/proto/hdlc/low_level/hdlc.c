@@ -66,7 +66,7 @@ int hdlc_ll_init(hdlc_ll_handle_t *handle, hdlc_ll_init_t *init)
     {
         LOG(TINY_LOG_ERR, "[HDLC] failed to init hdlc. buf=%p, size=%i (%i required)\n", init->buf, init->buf_size,
             (int)sizeof(hdlc_ll_data_t));
-        return TINY_ERR_FAILED;
+        return TINY_ERR_OUT_OF_MEMORY;
     }
     *handle = (hdlc_ll_handle_t)init->buf;
     (*handle)->rx_buf = init->buf + sizeof(hdlc_ll_data_t);

@@ -512,14 +512,14 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
         if ( init->mtu < 1 )
         {
             LOG(TINY_LOG_CRIT, "Calculated mtu size is zero, no payload transfer is available\n");
-            return TINY_ERR_INVALID_DATA;
+            return TINY_ERR_OUT_OF_MEMORY;
         }
     }
     if ( init->buffer_size < tiny_fd_buffer_size_by_mtu_ex(init->mtu, init->window_frames, init->crc_type, 1) )
     {
         LOG(TINY_LOG_CRIT, "Too small buffer for FD protocol %i < %i\n", init->buffer_size,
             tiny_fd_buffer_size_by_mtu_ex(init->mtu, init->window_frames, init->crc_type, 1));
-        return TINY_ERR_INVALID_DATA;
+        return TINY_ERR_OUT_OF_MEMORY;
     }
     if ( init->window_frames > 7 )
     {
@@ -569,7 +569,7 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     {
         LOG(TINY_LOG_CRIT, "Out of provided memory: provided %i bytes, used %i bytes\n", init->buffer_size,
             (int)(ptr - (uint8_t *)init->buffer));
-        return TINY_ERR_INVALID_DATA;
+        return TINY_ERR_OUT_OF_MEMORY;
     }
 
     int result = hdlc_ll_init(&protocol->_hdlc, &_init);

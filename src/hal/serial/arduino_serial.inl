@@ -35,8 +35,7 @@ tiny_serial_handle_t tiny_serial_open(const char *name, uint32_t baud)
 
 int tiny_serial_send(tiny_serial_handle_t port, const void *buf, int len)
 {
-    reinterpret_cast<HardwareSerial *>(port)->setTimeout(100);
-    return reinterpret_cast<HardwareSerial *>(port)->write(reinterpret_cast<const uint8_t *>(buf), len);
+    return tiny_serial_send_timeout( port, buf, len, 100 );
 }
 
 int tiny_serial_send_timeout(tiny_serial_handle_t port, const void *buf, int len, uint32_t timeout_ms)
@@ -48,11 +47,19 @@ int tiny_serial_send_timeout(tiny_serial_handle_t port, const void *buf, int len
 int tiny_serial_read(tiny_serial_handle_t port, void *buf, int len)
 {
     reinterpret_cast<HardwareSerial *>(port)->setTimeout(100);
+    if ( !reinterpret_cast<HardwareSerial *>(port)->available() )
+    {
+       return 0;
+    }
     return reinterpret_cast<HardwareSerial *>(port)->readBytes(reinterpret_cast<uint8_t *>(buf), len);
 }
 
 int tiny_serial_read_timeout(tiny_serial_handle_t port, void *buf, int len, uint32_t timeout_ms)
 {
     reinterpret_cast<HardwareSerial *>(port)->setTimeout(timeout_ms);
+    if ( !reinterpret_cast<HardwareSerial *>(port)->available() )
+    {
+       return 0;
+    }
     return reinterpret_cast<HardwareSerial *>(port)->readBytes(reinterpret_cast<uint8_t *>(buf), len);
 }
