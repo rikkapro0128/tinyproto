@@ -67,13 +67,18 @@ Main features:
 
 ### What if my platform is not yet supported?
 
- That's not a problem. Just implement abstraction layer for your platform (timing and mutex functions).
+ That's not a problem. Just implement abstraction layer for your platform (timing and mutex functions). Please
+go through the steps below:
+
+ * add TINY_CUSTOM_PLATFORM define to your compilation flags.
+ * Implement HAL functions and call `tiny_hal_init()` to pass your platform functions to the library
+ * add CONFIG_TINYHAL_THREAD_SUPPORT define to your compilation flags if your platform supports standard c++ thread library
+
 Refer to `tiny_hal_init()` function. To understand HAL implementation refer to
 [Linux](https://github.com/lexus2k/tinyproto/blob/master/src/hal/impl/linux_hal.inl) and
 [ESP32](https://github.com/lexus2k/tinyproto/blob/master/src/hal/impl/esp32_hal.inl) examples in
  [HAL abstraction layer](https://github.com/lexus2k/tinyproto/tree/master/src/hal).
-Do not forget to add TINY_CUSTOM_PLATFORM define to your compilation flags. You may use template code
-[platform_hal.c](tools/hal_template_functions/platform_hal.c)
+You may use template code [platform_hal.c](tools/hal_template_functions/platform_hal.c)
 
 ## Easy to use
 
