@@ -849,7 +849,7 @@ int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *data, int len)
     // MTU doesn't include header and crc fields, only user payload
     if ( len > handle->frames.mtu )
     {
-        LOG(TINY_LOG_ERR, "[%p] PUT frame error\n", handle);
+        LOG(TINY_LOG_ERR, "[%p] PUT frame error: data len %i is greater MTU %i\n", handle, len, handle->frames.mtu);
         result = TINY_ERR_DATA_TOO_LARGE;
     }
     // Wait until there is room for new frame

@@ -178,6 +178,10 @@ static int run_fd(tiny_serial_handle_t port)
     {
          return -1;
     }
+    if ( s_isArduinoBoard )
+    {
+        tiny_sleep( 1400 );
+    }
 
     auto startTs = std::chrono::steady_clock::now();
     auto progressTs = startTs;
@@ -213,7 +217,7 @@ static int run_fd(tiny_serial_handle_t port)
         if ( s_generatorEnabled )
         {
             tinyproto::HeapPacket packet(s_packetSize);
-            packet.put("Generated frame. test in progress");
+            packet.put("New frame. Send in progress");
             if ( !proto.send(packet, 1000) )
             {
                 fprintf(stderr, "Failed to send packet\n");
