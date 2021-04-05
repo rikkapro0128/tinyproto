@@ -23,10 +23,6 @@
 namespace tinyproto
 {
 
-//#if defined(ARDUINO)
-
-//#else
-
 SerialFdLink::~SerialFdLink()
 {
     if ( m_buffer )
@@ -46,13 +42,12 @@ bool SerialFdLink::begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, vo
 
 void SerialFdLink::end()
 {
+    ISerialLinkLayer<IFdLinkLayer,128>::end();
     if ( m_buffer )
     {
         free(m_buffer);
         m_buffer = nullptr;
     }
 }
-
-//#endif
 
 } // namespace tinyproto

@@ -1,5 +1,5 @@
 /*
-    Copyright 2016-2021 (C) Alexey Dynda
+    Copyright 2021 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -17,58 +17,37 @@
     along with Protocol Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#pragma once
-
-#include "TinyPacket.h"
-#include "proto/fd/tiny_fd.h"
-
-#include <stdint.h>
-#include <limits.h>
+#include "TinySerialHdlcLink.h"
+#include <stdlib.h>
 
 namespace tinyproto
 {
 
-class ILinkLayer
+SerialHdlcLink::~SerialHdlcLink()
 {
-public:
-    /**
-     *
-     */
-    virtual bool begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata) = 0;
-
-    virtual void end() = 0;
-
-    virtual void runRx() = 0;
-
-    virtual void runTx() = 0;
-
-    virtual bool put(void *buf, int size) = 0;
-
-    void setTimeout(uint32_t timeout)
+    if ( m_buffer )
     {
-        m_timeout = timeout;
+        free(m_buffer);
+        m_buffer = nullptr;
     }
+}
 
-    uint32_t getTimeout()
+bool SerialHdlcLink::begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata)
+{
+    int size = hdlc_ll_get_buf_size_ex(getMtu(), getCrc(), 3);
+    m_buffer = reinterpret_cast<uint8_t *>(malloc(size));
+    setBuffer(m_buffer, size);
+    return ISerialLinkLayer<IHdlcLinkLayer,128>::begin(onReadCb, onSendCb, udata);
+}
+
+void SerialHdlcLink::end()
+{
+    ISerialLinkLayer<IHdlcLinkLayer,128>::end();
+    if ( m_buffer )
     {
-        return m_timeout;
+        free(m_buffer);
+        m_buffer = nullptr;
     }
-
-    int getMtu()
-    {
-        return m_mtu;
-    }
-
-    void setMtu(int mtu)
-    {
-        m_mtu = mtu;
-    }
-
-    virtual ~ILinkLayer() = default;
-
-private:
-    int m_mtu = 16384;
-    uint32_t m_timeout;
-};
+}
 
 } // namespace tinyproto

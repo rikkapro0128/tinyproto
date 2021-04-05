@@ -240,6 +240,18 @@ ArduinoSerialFdLink &SerialFdProto::getLink()
     return m_layer;
 }
 
+SerialHdlcProto::SerialHdlcProto(HardwareSerial &port)
+    : Proto( false )
+    , m_layer( &port )
+{
+    setLink( m_layer );
+}
+
+ArduinoSerialHdlcLink &SerialHdlcProto::getLink()
+{
+    return m_layer;
+}
+
 #else
 
 SerialFdProto::SerialFdProto(char *dev, bool multithread)
@@ -250,6 +262,18 @@ SerialFdProto::SerialFdProto(char *dev, bool multithread)
 }
 
 SerialFdLink &SerialFdProto::getLink()
+{
+    return m_layer;
+}
+
+SerialHdlcProto::SerialHdlcProto(char *dev, bool multithread)
+    : Proto( multithread )
+    , m_layer( dev )
+{
+    setLink( m_layer );
+}
+
+SerialHdlcLink &SerialHdlcProto::getLink()
 {
     return m_layer;
 }

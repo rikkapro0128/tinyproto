@@ -33,6 +33,7 @@
 #include "TinyProtocolFd.h"
 #include "link/TinyLinkLayer.h"
 #include "link/TinySerialFdLink.h"
+#include "link/TinySerialHdlcLink.h"
 
 #include "hal/tiny_types.h"
 
@@ -113,6 +114,18 @@ public:
 private:
     ArduinoSerialFdLink m_layer;
 };
+
+class SerialHdlcProto: public Proto
+{
+public:
+    SerialHdlcProto(HardwareSerial &port);
+
+    ArduinoSerialHdlcLink &getLink();
+
+private:
+    ArduinoSerialHdlcLink m_layer;
+};
+
 #else
 
 class SerialFdProto: public Proto
@@ -125,6 +138,19 @@ public:
 private:
     SerialFdLink m_layer;
 };
+
+class SerialHdlcProto: public Proto
+{
+public:
+    SerialHdlcProto(char *dev, bool multithread = false);
+
+    SerialHdlcLink &getLink();
+
+private:
+    SerialHdlcLink m_layer;
+};
+
+
 #endif
 
 } // namespace tinyproto

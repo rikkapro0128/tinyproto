@@ -64,6 +64,7 @@ protected:
 
 private:
     hdlc_ll_handle_t m_handle = nullptr;
+    tiny_mutex_t  m_sendMutex{};
     uint8_t *m_buffer = nullptr;
     int m_bufferSize = 0;
     hdlc_crc_t m_crc = HDLC_CRC_8;

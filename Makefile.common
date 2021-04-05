@@ -79,6 +79,7 @@ OBJ_LIB += \
 	src/link/TinyHdlcLinkLayer.o \
 	src/link/TinySerialLinkLayer.o \
 	src/link/TinySerialFdLink.o \
+	src/link/TinySerialHdlcLink.o \
 	src/interface/TinySerial.o \
 
 prep:

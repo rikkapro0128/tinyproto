@@ -26,10 +26,12 @@ IHdlcLinkLayer::IHdlcLinkLayer(void *buffer, int size)
     : m_buffer(reinterpret_cast<uint8_t *>(buffer))
     , m_bufferSize(size)
 {
+    tiny_mutex_create( &m_sendMutex );
 }
 
 IHdlcLinkLayer::~IHdlcLinkLayer()
 {
+    tiny_mutex_destroy( &m_sendMutex );
 }
 
 bool IHdlcLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata)
@@ -54,7 +56,10 @@ void IHdlcLinkLayer::end()
 
 bool IHdlcLinkLayer::put(void *buf, int size)
 {
-    return hdlc_ll_put(m_handle, buf, size) >= 0;
+    tiny_mutex_lock( &m_sendMutex );
+    int result = hdlc_ll_put(m_handle, buf, size) >= 0;
+    tiny_mutex_unlock( &m_sendMutex );
+    return result == TINY_SUCCESS;
 }
 
 int IHdlcLinkLayer::parseData(const uint8_t *data, int size)
@@ -64,7 +69,10 @@ int IHdlcLinkLayer::parseData(const uint8_t *data, int size)
 
 int IHdlcLinkLayer::getData(uint8_t *data, int size)
 {
-    return hdlc_ll_run_tx(m_handle, data, size);
+    tiny_mutex_lock( &m_sendMutex );
+    int result = hdlc_ll_run_tx(m_handle, data, size);
+    tiny_mutex_unlock( &m_sendMutex );
+    return result;
 }
 
 /////////////////////////////////////////////////////////////////////////////
