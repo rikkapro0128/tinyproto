@@ -165,7 +165,9 @@ static int runLoopBackMode( tinyproto::Proto &proto )
             if ( !s_runTest )
                 fprintf(stderr, "<<< Frame received payload len=%d\n", packet.size());
             s_receivedBytes += static_cast<int>(packet.size());
-            if ( !proto.send( packet, 0 ) )
+            // Add 10 milliseconds timeout to give for Light/Hdlc protocols some time
+            // to wait until message is sent
+            if ( !proto.send( packet, 10 ) )
             {
                 fprintf(stderr, "Failed to loopback packet\n");
             }

@@ -841,7 +841,7 @@ int tiny_fd_run_tx(tiny_fd_handle_t handle, write_block_cb_t write_func)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *data, int len)
+int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *data, int len, uint32_t timeout)
 {
     int result;
     LOG(TINY_LOG_DEB, "[%p] PUT frame\n", handle);
@@ -853,8 +853,7 @@ int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *data, int len)
         result = TINY_ERR_DATA_TOO_LARGE;
     }
     // Wait until there is room for new frame
-    else if ( tiny_events_wait(&handle->frames.events, FD_EVENT_QUEUE_HAS_FREE_SLOTS, EVENT_BITS_CLEAR,
-                               handle->send_timeout) )
+    else if ( tiny_events_wait(&handle->frames.events, FD_EVENT_QUEUE_HAS_FREE_SLOTS, EVENT_BITS_CLEAR, timeout) )
     {
         tiny_mutex_lock(&handle->frames.mutex);
         // Check if space is actually available
@@ -924,14 +923,14 @@ int tiny_fd_get_mtu(tiny_fd_handle_t handle)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tiny_fd_send(tiny_fd_handle_t handle, const void *data, int len)
+int tiny_fd_send(tiny_fd_handle_t handle, const void *data, int len, uint32_t timeout)
 {
     const uint8_t *ptr = (const uint8_t *)data;
     int left = len;
     while ( left > 0 )
     {
         int size = left < handle->frames.mtu ? left : handle->frames.mtu;
-        int result = tiny_fd_send_packet(handle, ptr, size);
+        int result = tiny_fd_send_packet(handle, ptr, size, timeout);
         if ( result != TINY_SUCCESS )
         {
             break;

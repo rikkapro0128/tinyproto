@@ -122,7 +122,7 @@ static int hdlc_ll_send_start(hdlc_ll_handle_t handle)
     // Do not clear data ready bit here in case if 0x7F is failed to be sent
     if ( !handle->tx.origin_data )
     {
-        LOG(TINY_LOG_DEB, "[HDLC:%p] SENDING START NO DATA READY\n", handle);
+        //LOG(TINY_LOG_DEB, "[HDLC:%p] SENDING START NO DATA READY\n", handle);
         return 0;
     }
     LOG(TINY_LOG_INFO, "[HDLC:%p] Starting send op for HDLC frame\n", handle);
@@ -333,9 +333,9 @@ int hdlc_ll_run_tx(hdlc_ll_handle_t handle, void *data, int len)
 
 int hdlc_ll_put(hdlc_ll_handle_t handle, const void *data, int len)
 {
-    LOG(TINY_LOG_DEB, "[HDLC:%p] hdlc_ll_put\n", handle);
-    if ( !len || !data || !handle )
+    if ( !handle )
     {
+        LOG(TINY_LOG_ERR, "[HDLC:%p] hdlc_ll_put invalid handle passed \n", handle);
         return TINY_ERR_INVALID_DATA;
     }
     // Check if TX thread is ready to accept new data
@@ -343,6 +343,10 @@ int hdlc_ll_put(hdlc_ll_handle_t handle, const void *data, int len)
     {
         LOG(TINY_LOG_WRN, "[HDLC:%p] hdlc_ll_put FAILED\n", handle);
         return TINY_ERR_BUSY;
+    }
+    if ( !len || !data )
+    {
+        return TINY_SUCCESS;
     }
     LOG(TINY_LOG_DEB, "[HDLC:%p] hdlc_ll_put SUCCESS\n", handle);
     handle->tx.origin_data = data;

@@ -39,7 +39,7 @@ public:
 
     void end() override;
 
-    bool put(void *buf, int size) override;
+    bool put(void *buf, int size, uint32_t timeout) override;
 
     int getWindow()
     {

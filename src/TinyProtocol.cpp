@@ -86,13 +86,16 @@ bool Proto::send(const IPacket &packet, uint32_t timeout)
     uint32_t startTs = tiny_millis();
     for ( ;; )
     {
-        result = m_link->put( packet.m_buf, packet.m_len );
-        if ( result || timeout <= 0 )
+        // Try to put message to outgoing queue
+        result = m_link->put( packet.m_buf, packet.m_len, m_multithread ? timeout : 0 );
+        if ( result )
         {
             break;
         }
         if ( static_cast<uint32_t>(tiny_millis() - startTs) >= timeout )
         {
+            // Cancel send operation if possible
+            m_link->put( nullptr, 0, 0 );
             break;
         }
         if ( !m_multithread )

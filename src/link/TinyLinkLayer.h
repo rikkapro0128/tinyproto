@@ -42,7 +42,7 @@ public:
 
     virtual void runTx() = 0;
 
-    virtual bool put(void *buf, int size) = 0;
+    virtual bool put(void *buf, int size, uint32_t timeout) = 0;
 
     void setTimeout(uint32_t timeout)
     {

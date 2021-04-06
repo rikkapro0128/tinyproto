@@ -22,6 +22,8 @@
 #include "TinyLinkLayer.h"
 #include "proto/hdlc/low_level/hdlc.h"
 
+#include "hal/tiny_types.h"
+
 #include <stdint.h>
 
 namespace tinyproto
@@ -38,7 +40,7 @@ public:
 
     void end() override;
 
-    bool put(void *buf, int size) override;
+    bool put(void *buf, int size, uint32_t timeout) override;
 
     hdlc_crc_t getCrc()
     {
@@ -64,10 +66,19 @@ protected:
 
 private:
     hdlc_ll_handle_t m_handle = nullptr;
+    void *m_udata;
+    on_frame_cb_t m_onReadCb = nullptr;
+    on_frame_send_cb_t m_onSendCb = nullptr;
     tiny_mutex_t  m_sendMutex{};
+    tiny_events_t m_events{};
+    void *m_tempBuffer = nullptr;
+
     uint8_t *m_buffer = nullptr;
     int m_bufferSize = 0;
     hdlc_crc_t m_crc = HDLC_CRC_8;
+
+    static void onSend(void *udata, const uint8_t *data, int len);
+    static void onRead(void *udata, uint8_t *data, int len);
 };
 
 } // namespace tinyproto

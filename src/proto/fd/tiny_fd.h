@@ -208,6 +208,7 @@ extern "C"
      * @param handle   tiny_fd_handle_t handle
      * @param buf      data to send
      * @param len      length of data to send
+     * @param timeout  timeout in milliseconds to wait until data are placed to outgoing queue
      *
      * @return Success result or error code:
      *         * TINY_SUCCESS          if user data are put to internal queue.
@@ -215,7 +216,7 @@ extern "C"
      *         * TINY_ERR_FAILED       if request was cancelled, by tiny_fd_close() or other error happened.
      *         * TINY_ERR_DATA_TOO_LARGE if user data are too big to fit in tx buffer.
      */
-    extern int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *buf, int len);
+    extern int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *buf, int len, uint32_t timeout);
 
     /**
      * Returns minimum required buffer size for specified parameters.
@@ -261,10 +262,11 @@ extern "C"
      * @param handle   tiny_fd_handle_t handle
      * @param buf      data to send
      * @param len      length of data to send
+     * @param timeout  timeout in milliseconds, will be used for each block sending
      *
      * @return Number of bytes sent
      */
-    extern int tiny_fd_send(tiny_fd_handle_t handle, const void *buf, int len);
+    extern int tiny_fd_send(tiny_fd_handle_t handle, const void *buf, int len, uint32_t timeout);
 
     /**
      * Sets keep alive timeout in milliseconds. This timeout is used to send special RR

@@ -56,9 +56,13 @@ void IFdLinkLayer::end()
     m_handle = nullptr;
 }
 
-bool IFdLinkLayer::put(void *buf, int size)
+bool IFdLinkLayer::put(void *buf, int size, uint32_t timeout)
 {
-    return tiny_fd_send_packet(m_handle, buf, size) >= 0;
+    if ( !buf )
+    {
+        return false;
+    }
+    return tiny_fd_send_packet(m_handle, buf, size, timeout) >= 0;
 }
 
 int IFdLinkLayer::parseData(const uint8_t *data, int size)

@@ -68,12 +68,12 @@ void IFd::end()
 
 int IFd::write(const char *buf, int size)
 {
-    return tiny_fd_send_packet(m_handle, buf, size);
+    return tiny_fd_send_packet(m_handle, buf, size, m_sendTimeout);
 }
 
 int IFd::write(const IPacket &pkt)
 {
-    return tiny_fd_send_packet(m_handle, pkt.m_buf, pkt.m_len);
+    return tiny_fd_send_packet(m_handle, pkt.m_buf, pkt.m_len, m_sendTimeout);
 }
 
 int IFd::run_rx(const void *data, int len)

@@ -145,7 +145,7 @@ static PyObject *Fd_send(Fd *self, PyObject *args)
     {
         return NULL;
     }
-    int result = tiny_fd_send_packet(self->handle, buffer.buf, buffer.len);
+    int result = tiny_fd_send_packet(self->handle, buffer.buf, buffer.len, 1000);
     PyBuffer_Release(&buffer);
     return PyLong_FromLong((long)result);
 }

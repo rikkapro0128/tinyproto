@@ -22,24 +22,36 @@
 namespace tinyproto
 {
 
+enum
+{
+    TX_QUEUE_FREE = 1,
+    TX_MESSAGE_SENT = 2,
+};
+
 IHdlcLinkLayer::IHdlcLinkLayer(void *buffer, int size)
     : m_buffer(reinterpret_cast<uint8_t *>(buffer))
     , m_bufferSize(size)
 {
     tiny_mutex_create( &m_sendMutex );
+    tiny_events_create( &m_events );
+    tiny_events_set( &m_events, TX_QUEUE_FREE );
 }
 
 IHdlcLinkLayer::~IHdlcLinkLayer()
 {
+    tiny_events_destroy( &m_events );
     tiny_mutex_destroy( &m_sendMutex );
 }
 
 bool IHdlcLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata)
 {
     hdlc_ll_init_t init{};
-    init.user_data = udata;
-    init.on_frame_read = onReadCb;
-    init.on_frame_send = onSendCb;
+    m_onReadCb = onReadCb;
+    m_onSendCb = onSendCb;
+    m_udata = udata;
+    init.user_data = this;
+    init.on_frame_read = onRead;
+    init.on_frame_send = onSend;
     init.buf = m_buffer;
     init.buf_size = m_bufferSize;
     init.crc_type = getCrc();
@@ -54,12 +66,38 @@ void IHdlcLinkLayer::end()
     m_handle = nullptr;
 }
 
-bool IHdlcLinkLayer::put(void *buf, int size)
+bool IHdlcLinkLayer::put(void *buf, int size, uint32_t timeout)
 {
-    tiny_mutex_lock( &m_sendMutex );
-    int result = hdlc_ll_put(m_handle, buf, size) >= 0;
-    tiny_mutex_unlock( &m_sendMutex );
-    return result == TINY_SUCCESS;
+    bool result = false;
+    if ( !buf )
+    {
+        tiny_mutex_lock( &m_sendMutex );
+        hdlc_ll_reset( m_handle, HDLC_LL_RESET_TX_ONLY );
+        tiny_mutex_unlock( &m_sendMutex );
+        tiny_events_set( &m_events, TX_QUEUE_FREE );
+        result = true;
+    }
+    uint8_t bits = tiny_events_wait( &m_events, TX_QUEUE_FREE, EVENT_BITS_CLEAR, timeout );
+    if ( bits )
+    {
+        tiny_mutex_lock( &m_sendMutex );
+        if ( m_tempBuffer == buf )
+        {
+            m_tempBuffer = nullptr;
+            tiny_events_set( &m_events, TX_QUEUE_FREE );
+            result = true;
+        }
+        else if ( hdlc_ll_put(m_handle, buf, size) == TINY_SUCCESS )
+        {
+            m_tempBuffer = buf;
+        }
+        else
+        {
+            tiny_events_set( &m_events, TX_QUEUE_FREE );
+        }
+        tiny_mutex_unlock( &m_sendMutex );
+    }
+    return result;
 }
 
 int IHdlcLinkLayer::parseData(const uint8_t *data, int size)
@@ -69,10 +107,24 @@ int IHdlcLinkLayer::parseData(const uint8_t *data, int size)
 
 int IHdlcLinkLayer::getData(uint8_t *data, int size)
 {
-    tiny_mutex_lock( &m_sendMutex );
-    int result = hdlc_ll_run_tx(m_handle, data, size);
-    tiny_mutex_unlock( &m_sendMutex );
-    return result;
+    if ( tiny_events_wait( &m_events, TX_QUEUE_FREE, EVENT_BITS_LEAVE, 0 ) != TX_QUEUE_FREE )
+    {
+        return hdlc_ll_run_tx(m_handle, data, size);
+    }
+    return 0;
+}
+
+void IHdlcLinkLayer::onSend(void *udata, const uint8_t *data, int len)
+{
+    IHdlcLinkLayer *layer = reinterpret_cast<IHdlcLinkLayer *>(udata);
+    tiny_events_set( &layer->m_events, TX_QUEUE_FREE );
+    layer->m_onSendCb( layer->m_udata, data, len );
+}
+
+void IHdlcLinkLayer::onRead(void *udata, uint8_t *data, int len)
+{
+    IHdlcLinkLayer *layer = reinterpret_cast<IHdlcLinkLayer *>(udata);
+    layer->m_onReadCb( layer->m_udata, data, len );
 }
 
 /////////////////////////////////////////////////////////////////////////////
