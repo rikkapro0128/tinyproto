@@ -60,6 +60,7 @@ private:
     tiny_fd_handle_t m_handle;
     int m_rx_count = 0;
     int m_tx_count = 0;
+    uint32_t m_timeout = 0;
     std::thread *m_message_sender = nullptr;
     std::function<void(uint8_t *, int)> m_onRxFrameCb;
     bool m_stop_sender = false;
