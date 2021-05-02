@@ -100,13 +100,14 @@ extern "C"
         int phys_mtu;
         struct
         {
-            uint8_t *data;
             int (*state)(hdlc_ll_handle_t handle, const uint8_t *data, int len);
+            uint8_t *data;
             uint8_t escape;
             uint8_t *frame_buf;
         } rx;
         struct
         {
+            int (*state)(hdlc_ll_handle_t handle);
             uint8_t *out_buffer;
             int out_buffer_len;
             const uint8_t *origin_data;
@@ -114,7 +115,6 @@ extern "C"
             int len;
             crc_t crc;
             uint8_t escape;
-            int (*state)(hdlc_ll_handle_t handle);
         } tx;
 #endif
     } hdlc_ll_data_t;
