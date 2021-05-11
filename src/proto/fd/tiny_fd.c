@@ -503,7 +503,7 @@ static void on_frame_send(void *user_data, const uint8_t *data, int len)
 
 static int tiny_fd_calculate_mtu_size(int buffer_size, int window, hdlc_crc_t crc_type)
 {
-    return (buffer_size -
+    return (buffer_size - (TINY_ALIGN_STRUCT_VALUE - 1) -
             sizeof(tiny_fd_data_t)
             // RX overhead
             - sizeof(hdlc_ll_data_t) - sizeof(tiny_frame_header_t) -
@@ -556,15 +556,10 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     }
     memset(init->buffer, 0, init->buffer_size);
 
-    uint8_t *ptr = (uint8_t *)init->buffer;
     /* Lets locate main FD protocol data at the beginning of specified buffer.
      * The buffer must be properly aligned for ARM processors to get correct alignment for tiny_fd_data_t structure.
      * That's why we allocate the space for the tiny_fd_data_t structure at the beginning. */
-    if ( (uintptr_t)ptr % TINY_ALIGN_STRUCT_VALUE != 0 )
-    {
-        LOG(TINY_LOG_CRIT, "The provided buffer is not aligned properly\n");
-        return TINY_ERR_INVALID_DATA;
-    }
+    uint8_t *ptr = (uint8_t *)( ((uintptr_t)init->buffer + TINY_ALIGN_STRUCT_VALUE - 1) & (~(TINY_ALIGN_STRUCT_VALUE - 1)) );
     tiny_fd_data_t *protocol = (tiny_fd_data_t *)ptr;
     ptr += sizeof(tiny_fd_data_t);
     /* Next let's allocate the space for low level hdlc structure.
@@ -938,6 +933,7 @@ int tiny_fd_buffer_size_by_mtu(int mtu, int window)
 
 int tiny_fd_buffer_size_by_mtu_ex(int mtu, int tx_window, hdlc_crc_t crc_type, int rx_window)
 {
+    // Alignment requirements are already satisfied by hdlc_ll_get_buf_size_ex() subfunction call
     return sizeof(tiny_fd_data_t) +
            // RX side
            hdlc_ll_get_buf_size_ex(mtu + sizeof(tiny_frame_header_t), crc_type, rx_window) +

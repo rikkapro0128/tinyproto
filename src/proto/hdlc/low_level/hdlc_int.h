@@ -41,12 +41,12 @@ extern "C"
 /**
  * Macro calculating minimum buffer size required for specific packet size in bytes
  */
-#define HDLC_MIN_BUF_SIZE(mtu, crc) (sizeof(hdlc_ll_data_t) + (int)(crc) / 8 + (mtu))
+#define HDLC_MIN_BUF_SIZE(mtu, crc) (sizeof(hdlc_ll_data_t) + (int)(crc) / 8 + (mtu) + TINY_ALIGN_STRUCT_VALUE - 1)
 
 /**
  * Macro calculating buffer size required for specific packet size in bytes, and window
  */
-#define HDLC_BUF_SIZE_EX(mtu, crc, window) (sizeof(hdlc_ll_data_t) + ((int)(crc) / 8 + (mtu)) * (window))
+#define HDLC_BUF_SIZE_EX(mtu, crc, window) (sizeof(hdlc_ll_data_t) + ((int)(crc) / 8 + (mtu)) * (window) + TINY_ALIGN_STRUCT_VALUE - 1)
 
     /**
      * Structure describes configuration of lowest HDLC level
