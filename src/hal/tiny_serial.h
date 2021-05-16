@@ -38,15 +38,15 @@ extern "C"
 
 #include <stdint.h>
 #if defined(ARDUINO)
-#include "serial/arduino_serial.h"
+#include "arduino/arduino_serial.h"
 #elif defined(__linux__)
-#include "serial/linux_serial.h"
+#include "linux/linux_serial.h"
 #elif defined(_WIN32)
-#include "serial/win32_serial.h"
+#include "win32/win32_serial.h"
 #elif defined(__XTENSA__)
-#include "serial/esp32_serial.h"
+#include "esp32/esp32_serial.h"
 #else
-#include "serial/noplatform_serial.h"
+#include "no_platform/noplatform_serial.h"
 #endif
 
     /**

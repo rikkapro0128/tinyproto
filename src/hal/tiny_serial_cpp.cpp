@@ -21,6 +21,6 @@
 
 #if defined(ARDUINO)
 
-#include "serial/arduino_serial.inl"
+#include "arduino/arduino_serial.inl"
 
 #endif

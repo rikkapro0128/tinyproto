@@ -23,18 +23,18 @@
 
 #elif defined(__linux__)
 
-#include "serial/linux_serial.inl"
+#include "linux/linux_serial.inl"
 
 #elif defined(_WIN32)
 
-#include "serial/win32_serial.inl"
+#include "win32/win32_serial.inl"
 
 #elif defined(__XTENSA__)
 
-#include "serial/esp32_serial.inl"
+#include "esp32/esp32_serial.inl"
 
 #else
 
-#include "serial/noplatform_serial.inl"
+#include "no_platform/noplatform_serial.inl"
 
 #endif

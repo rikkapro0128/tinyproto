@@ -75,8 +75,8 @@ go through the steps below:
  * add CONFIG_TINYHAL_THREAD_SUPPORT define to your compilation flags if your platform supports standard c++ thread library
 
 Refer to `tiny_hal_init()` function. To understand HAL implementation refer to
-[Linux](https://github.com/lexus2k/tinyproto/blob/master/src/hal/impl/linux_hal.inl) and
-[ESP32](https://github.com/lexus2k/tinyproto/blob/master/src/hal/impl/esp32_hal.inl) examples in
+[Linux](https://github.com/lexus2k/tinyproto/blob/master/src/hal/linux/linux_hal.inl) and
+[ESP32](https://github.com/lexus2k/tinyproto/blob/master/src/hal/esp32/esp32_hal.inl) examples in
  [HAL abstraction layer](https://github.com/lexus2k/tinyproto/tree/master/src/hal).
 You may use template code [platform_hal.c](tools/hal_template_functions/platform_hal.c)
 
