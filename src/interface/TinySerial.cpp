@@ -22,8 +22,6 @@
 namespace tinyproto
 {
 
-#if defined(ARDUINO) || defined(__linux__) || defined(_WIN32) || defined(__XTENSA__)
-
 #if defined(ARDUINO)
 Serial::Serial(HardwareSerial &dev)
     : m_dev( reinterpret_cast<char *>(&dev) )
@@ -62,35 +60,5 @@ int Serial::write(const uint8_t *buf, int len)
 {
     return tiny_serial_send_timeout(m_handle, buf, len, m_timeoutMs);
 }
-
-#else
-
-Serial::Serial(const char *dev)
-{
-}
-
-void Serial::setTimeout(uint32_t timeoutMs)
-{
-}
-
-void Serial::begin(int speed)
-{
-}
-
-void Serial::end()
-{
-}
-
-int Serial::readBytes(uint8_t *buf, int len)
-{
-    return -1;
-}
-
-int write(const uint8_t *buf, int len)
-{
-    return -1;
-}
-
-#endif
 
 } // namespace tinyproto
