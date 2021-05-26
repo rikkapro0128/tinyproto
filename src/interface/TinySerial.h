@@ -50,7 +50,7 @@ public:
 
 private:
     const char *m_dev;
-    tiny_serial_handle_t m_handle = -1;
+    tiny_serial_handle_t m_handle = TINY_SERIAL_INVALID;
     uint32_t m_timeoutMs = 0;
 };
 

@@ -48,7 +48,7 @@ bool Serial::begin(uint32_t speed)
 void Serial::end()
 {
     tiny_serial_close(m_handle);
-    m_handle = -1;
+    m_handle = TINY_SERIAL_INVALID;
 }
 
 int Serial::readBytes(uint8_t *buf, int len)
