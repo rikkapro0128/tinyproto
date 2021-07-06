@@ -256,11 +256,24 @@ public:
         return m_buf[idx];
     }
 
+    /**
+     * Assign operator doesn't copy the data from the source packet, but
+     * it copies only pointers
+     */
     IPacket &operator=(const IPacket &source)
     {
         m_size = source.m_size;
         m_buf = source.m_buf;
         return *this;
+    }
+
+    /**
+     * Allocates space inside the packet buffer, the next data will be written after allocated block.
+     * Allocate operation doesn't changes the data inside the buffer
+     */
+    void allocate(int bytes)
+    {
+        m_len += bytes;
     }
 
 private:
