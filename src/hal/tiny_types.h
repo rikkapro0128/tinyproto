@@ -294,7 +294,7 @@ extern "C"
     uint32_t tiny_millis();
 
     /**
-     * Returns timestamp in microseconds since system started up
+     * Returns timestamp in microseconds since system started up.
      */
     uint32_t tiny_micros();
 

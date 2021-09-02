@@ -24,7 +24,7 @@ source_files =       glob.glob('./src/**/*.c*', recursive=True )
 source_files.extend( glob.glob('./python/**/*.cpp', recursive=True ) )
 
 tinyproto_module = Extension(
-    'tinyproto',
+    'tinyproto_',
     sources=source_files,
     include_dirs=['./src','./python'],
     define_macros=[("MYDEF", None), ("TINY_FD_DEBUG", 0), ("TINY_LOG_LEVEL_DEFAULT", 0)],
@@ -41,10 +41,11 @@ setup(
     author_email='alexey.dynda@gmail.com',
     url='https://github.com/lexus2k/tinyproto',
     license='LGPLv3',
-    version='0.12.0',
+    version='0.12.1',
     description='tinyproto module wrapper',
     package_dir = { "tinyproto": "./python" },
-    packages = ['tinyproto.wrappers'],
+    packages = ['tinyproto', 'tinyproto.wrappers', 'tinyproto.options'],
+    # py_modules = ['tinyproto.options'],
     ext_modules=[tinyproto_module],
 )
 
