@@ -20,6 +20,7 @@
 #include <Python.h>
 #include "hdlc_ll.h"
 #include "fd.h"
+#include "py_serial.h"
 
 static PyObject *pants(PyObject *self, PyObject *args)
 {
@@ -53,10 +54,17 @@ PyMODINIT_FUNC PyInit_tinyproto_(void)
         return NULL;
     }
 
+    if ( PyType_Ready(&SerialType) < 0 )
+    {
+        return NULL;
+    }
+
     Py_INCREF(&HdlcType);
     PyModule_AddObject(m, "Hdlc", (PyObject *)&HdlcType);
     Py_INCREF(&FdType);
     PyModule_AddObject(m, "Fd", (PyObject *)&FdType);
+    Py_INCREF(&SerialType);
+    PyModule_AddObject(m, "Serial", (PyObject *)&SerialType);
 
     return m;
 }
