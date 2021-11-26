@@ -32,6 +32,7 @@ extern "C"
 #include "proto/hdlc/low_level/hdlc.h"
 #include "proto/hdlc/low_level/hdlc_int.h"
 #include "hal/tiny_types.h"
+#include "tiny_fd_frames_int.h"
 
 #define FD_MIN_BUF_SIZE(mtu, window)                                                                                   \
     ((sizeof(tiny_fd_data_t) + HDLC_MIN_BUF_SIZE(mtu + sizeof(tiny_frame_header_t), HDLC_CRC_16) +                     \
@@ -55,12 +56,6 @@ extern "C"
 
     typedef struct
     {
-        uint8_t address;
-        uint8_t control;
-    } tiny_frame_header_t;
-
-    typedef struct
-    {
         TINY_ALIGNED(1) tiny_frame_header_t header; ///< header of s-frame, non-empty is there is something to send
     } tiny_s_frame_info_t;
 
@@ -75,15 +70,6 @@ extern "C"
 
     typedef struct
     {
-        uint8_t type; ///< 0 for now
-        int len;
-        /* Aligning header to 1 byte, since header and user_payload together are the byte-stream */
-        TINY_ALIGNED(1) tiny_frame_header_t header; ///< header, fill every time, when user payload is sending
-        uint8_t user_payload;       ///< this byte and all bytes after are user payload
-    } tiny_i_frame_info_t;
-
-    typedef struct
-    {
         int len;
         union
         {
@@ -94,13 +80,8 @@ extern "C"
 
     typedef struct
     {
-        tiny_i_frame_info_t **i_frames;
-        uint8_t max_i_frames;
-        uint8_t head_ptr;
+        uint8_t addr;        // Peer address
 
-        int mtu;
-
-        tiny_mutex_t mutex;
         uint8_t next_nr;     // frame waiting to receive
         uint8_t sent_nr;     // frame index last sent back
         uint8_t sent_reject; // If reject was already sent
@@ -113,8 +94,18 @@ extern "C"
         uint8_t ka_confirmed;
 
         uint8_t retries; // Number of retries to perform before timeout takes place
-
         tiny_events_t events;
+
+    } tiny_fd_peer_info_t;
+
+    typedef struct
+    {
+        tiny_fd_queue_t i_queue;
+        uint8_t window_size;
+
+
+        tiny_mutex_t mutex;
+
     } tiny_frames_info_t;
 
     typedef struct tiny_fd_data_t
@@ -137,6 +128,7 @@ extern "C"
         uint8_t retries;
         /// Information for frames being processed
         tiny_frames_info_t frames;
+        tiny_fd_peer_info_t peers[1];
         struct
         {
             tiny_frame_info_t queue[TINY_FD_U_QUEUE_MAX_SIZE];
