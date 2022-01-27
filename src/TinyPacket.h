@@ -292,13 +292,13 @@ private:
  * Template  class to create packet with static allocation of buffer
  * Use this class for microcontrollers with few resources.
  */
-template <int S> class Packet: public IPacket
+template <int S> class StaticPacket: public IPacket
 {
 public:
     /**
      * Creates IPacket instance with statically allocated buffer
      */
-    Packet()
+    StaticPacket()
         : IPacket(m_data, S)
     {
     }

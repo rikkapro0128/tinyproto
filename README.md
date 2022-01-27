@@ -21,11 +21,8 @@
 
 ## Introduction
 
-If you want to get stable code, please, refer to [stable branch](https://github.com/lexus2k/tinyproto/tree/stable).
-HD (half duplex) protocol is removed from this version. If you need it, please refer to stable branch.
-
-Tiny Protocol is layer 2 protocol. It is intended to be used for the systems with low resources.
-It is also can be compiled for desktop Linux system, and it can be built it for Windows.
+Tiny Protocol is **LAYER 2** protocol. It is intended to be used for the systems with low resources.
+It is also can be compiled for desktop Linux system, and it can be built for Windows.
 Using this library you can easy implement data transfer between 2 microcontrollers or between microcontroller and pc via UART, SPI,
 I2C or any other communication channels.
 You don't need to think about data synchronization between points. The library use no dynamic allocation of memory.
@@ -33,6 +30,9 @@ TinyProto is based on RFC 1662, it implements the following frames:
  * U-frames (SABM, UA)
  * S-frames (REJ, RR)
  * I-frames
+
+Tiny Protocol is NOT an application layer protocol, although, for example, it can be used with Protocol Buffers.
+
 
 ## Key Features
 
@@ -232,7 +232,7 @@ If you find the library useful and want to [support future development](https://
 
 ## License
 
-Copyright 2016-2021 (C) Alexey Dynda
+Copyright 2016-2022 (C) Alexey Dynda
 
 This file is part of Tiny Protocol Library.
 

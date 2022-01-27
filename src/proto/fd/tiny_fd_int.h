@@ -1,5 +1,5 @@
 /*
-    Copyright 2019-2021 (C) Alexey Dynda
+    Copyright 2019-2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -34,14 +34,18 @@ extern "C"
 #include "hal/tiny_types.h"
 #include "tiny_fd_frames_int.h"
 
+#define FD_PEER_BUF_SIZE() ( sizeof(tiny_fd_peer_info_t) )
+
 #define FD_MIN_BUF_SIZE(mtu, window)                                                                                   \
     (sizeof(tiny_fd_data_t) + HDLC_MIN_BUF_SIZE(mtu + sizeof(tiny_frame_header_t), HDLC_CRC_16) +                     \
+      ( 1 * FD_PEER_BUF_SIZE() ) + \
       (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_fd_frame_info_t) + mtu \
                                       - sizeof(((tiny_fd_frame_info_t *)0)->payload) ) * window + \
           ( sizeof(tiny_fd_frame_info_t) + sizeof(tiny_fd_frame_info_t *) ) * TINY_FD_U_QUEUE_MAX_SIZE )
 
 #define FD_BUF_SIZE_EX(mtu, tx_window, crc, rx_window)                                                                      \
     (sizeof(tiny_fd_data_t) + HDLC_BUF_SIZE_EX(mtu + sizeof(tiny_frame_header_t), crc, rx_window) +           \
+      ( 1 * FD_PEER_BUF_SIZE() ) + \
       (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_i_frame_info_t) + mtu \
                                       - sizeof(((tiny_fd_frame_info_t *)0)->payload)) * tx_window + \
        ( sizeof(tiny_fd_frame_info_t) + sizeof(tiny_fd_frame_info_t *) ) * TINY_FD_U_QUEUE_MAX_SIZE)
@@ -77,18 +81,19 @@ extern "C"
         uint32_t last_i_ts;  // last sent I-frame timestamp
         uint32_t last_ka_ts; // last keep alive timestamp
         uint8_t ka_confirmed;
+        uint8_t retries;     // Number of retries to perform before timeout takes place
 
-        uint8_t retries; // Number of retries to perform before timeout takes place
         tiny_events_t events;
 
     } tiny_fd_peer_info_t;
 
     typedef struct
     {
+        /// Storage for all I- frames
         tiny_fd_queue_t i_queue;
-        uint8_t window_size;
-
-
+        /// Storage for all S- and U- service frames
+        tiny_fd_queue_t s_queue;
+        /// Global mutex
         tiny_mutex_t mutex;
 
     } tiny_frames_info_t;
@@ -99,6 +104,8 @@ extern "C"
         on_frame_cb_t on_frame_cb;
         /// Callback to get notification of sent frames
         on_frame_send_cb_t on_send_cb;
+        /// Callback to get connect/disconnect notification
+        on_connect_event_cb_t on_connect_event_cb;
         /// hdlc information
         hdlc_ll_handle_t _hdlc;
         /// Timeout for operations with acknowledge
@@ -111,10 +118,11 @@ extern "C"
         uint8_t retries;
         /// Information for frames being processed
         tiny_frames_info_t frames;
+        /// Peers count supported by the master device
+        uint8_t peers_count;
         /// Information on all peers stations
-        tiny_fd_peer_info_t peers[1];
-        /// Storage for all S- and U- service frames
-        tiny_fd_queue_t s_queue;
+        tiny_fd_peer_info_t *peers;
+//        tiny_fd_peer_info_t peers[1];
         /// Global events for HDLC protocol
         tiny_events_t events;
         /// user specific data

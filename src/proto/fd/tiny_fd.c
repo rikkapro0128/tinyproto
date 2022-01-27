@@ -1,5 +1,5 @@
 /*
-    Copyright 2019-2021 (C) Alexey Dynda
+    Copyright 2019-2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -80,22 +80,27 @@ static uint8_t __address_field_to_peer(tiny_fd_handle_t handle, uint8_t address)
         // We will not support this format for now.
         return 0;
     }
-    address >>= 2; // Lower 2 bits are Extension bit and Command/Response bits
-    if ( address == 0x3F )
+    if ( address == 0xFF )
     {
-        // (0xFF >> 2) address is used by legacy tinyproto implementation
+        // 0xFF address is used by legacy tinyproto implementation
         return 0;
     }
-    // TODO: Check for maximum allowable stations number, and find peer corresponding to the address field
-    return 0;
+    for ( uint8_t peer = 0; peer < handle->peers_count; peer++ )
+    {
+        if ( handle->peers[peer].addr == address )
+        {
+            return peer;
+        }
+    }
+    // Return "NOT found peer"
+    return 0xFF;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 static uint8_t __peer_to_address_field(tiny_fd_handle_t handle, uint8_t peer)
 {
-    // TODO: Return 0xFF for now
-    return 0xFF;
+    return handle->peers[peer].addr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -137,7 +142,7 @@ static inline uint32_t __time_passed_since_last_frame_received(tiny_fd_handle_t 
 
 static bool __put_u_s_frame_to_tx_queue(tiny_fd_handle_t handle, int type, const void *data, int len)
 {
-    tiny_fd_frame_info_t *slot = tiny_fd_queue_allocate( &handle->s_queue, type, ((const uint8_t *)data) + 2, len - 2 );
+    tiny_fd_frame_info_t *slot = tiny_fd_queue_allocate( &handle->frames.s_queue, type, ((const uint8_t *)data) + 2, len - 2 );
     // Check if space is actually available
     if ( slot != NULL )
     {
@@ -300,10 +305,16 @@ static void __switch_to_connected_state(tiny_fd_handle_t handle, uint8_t peer)
         handle->peers[peer].sent_nr = 0;
         handle->peers[peer].sent_reject = 0;
         tiny_fd_queue_reset(&handle->frames.i_queue);
-        tiny_fd_queue_reset(&handle->s_queue);
+        tiny_fd_queue_reset(&handle->frames.s_queue);
         handle->peers[peer].last_ka_ts = tiny_millis();
         tiny_events_set(&handle->peers[peer].events, FD_EVENT_CAN_ACCEPT_I_FRAMES);
         tiny_events_set(&handle->events, FD_EVENT_TX_DATA_AVAILABLE);
+        if ( handle->on_connect_event_cb )
+        {
+            tiny_mutex_unlock(&handle->frames.mutex);
+            handle->on_connect_event_cb(handle->user_data, __peer_to_address_field( handle, peer ), true);
+            tiny_mutex_lock(&handle->frames.mutex);
+        }
         LOG(TINY_LOG_CRIT, "[%p] ABM connection is established\n", handle);
     }
 }
@@ -322,8 +333,14 @@ static void __switch_to_disconnected_state(tiny_fd_handle_t handle, uint8_t peer
         handle->peers[peer].sent_nr = 0;
         handle->peers[peer].sent_reject = 0;
         tiny_fd_queue_reset(&handle->frames.i_queue);
-        tiny_fd_queue_reset(&handle->s_queue);
+        tiny_fd_queue_reset(&handle->frames.s_queue);
         tiny_events_clear(&handle->peers[peer].events, FD_EVENT_CAN_ACCEPT_I_FRAMES);
+        if ( handle->on_connect_event_cb )
+        {
+            tiny_mutex_unlock(&handle->frames.mutex);
+            handle->on_connect_event_cb(handle->user_data, __peer_to_address_field( handle, peer ), false);
+            tiny_mutex_lock(&handle->frames.mutex);
+        }
         LOG(TINY_LOG_CRIT, "[%p] ABM disconnected\n", handle);
     }
 }
@@ -461,6 +478,11 @@ static void on_frame_read(void *user_data, uint8_t *data, int len)
         return;
     }
     uint8_t peer = __address_field_to_peer( handle, ((uint8_t *)data)[0] );
+    if ( peer == 0xFF )
+    {
+        LOG(TINY_LOG_CRIT, "[%p] Peer is unknown, ignoring frame\n", handle);
+        return;
+    }
     // printf("[%p] Incoming frame of size %i\n", handle, len);
     handle->peers[peer].last_ka_ts = tiny_millis();
     tiny_mutex_lock(&handle->frames.mutex);
@@ -502,6 +524,10 @@ static void on_frame_send(void *user_data, const uint8_t *data, int len)
     tiny_fd_handle_t handle = (tiny_fd_handle_t)user_data;
     uint8_t peer = __address_field_to_peer( handle, ((const uint8_t *)data)[0] );
     uint8_t control = ((uint8_t *)data)[1];
+    if ( peer == 0xFF )
+    {
+        // Do nothing for now
+    }
     tiny_mutex_lock(&handle->frames.mutex);
     if ( (control & HDLC_I_FRAME_MASK) == HDLC_I_FRAME_BITS )
     {
@@ -511,13 +537,13 @@ static void on_frame_send(void *user_data, const uint8_t *data, int len)
     }
     else if ( (control & HDLC_S_FRAME_MASK) == HDLC_S_FRAME_BITS )
     {
-        tiny_fd_queue_free_by_header( &handle->s_queue, data );
+        tiny_fd_queue_free_by_header( &handle->frames.s_queue, data );
         //        fprintf( stderr, "QUEUE PTR=%d, LEN=%d\n", handle->s_u_frames.queue_ptr, handle->s_u_frames.queue_len
         //        );
     }
     else if ( (control & HDLC_U_FRAME_MASK) == HDLC_U_FRAME_BITS )
     {
-        tiny_fd_queue_free_by_header( &handle->s_queue, data );
+        tiny_fd_queue_free_by_header( &handle->frames.s_queue, data );
         //        fprintf( stderr, "QUEUE PTR=%d, LEN=%d\n", handle->s_u_frames.queue_ptr, handle->s_u_frames.queue_len
         //        );
     }
@@ -527,17 +553,17 @@ static void on_frame_send(void *user_data, const uint8_t *data, int len)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static int tiny_fd_calculate_mtu_size(int buffer_size, int window, hdlc_crc_t crc_type)
+static int tiny_fd_calculate_mtu_size(int buffer_size, uint8_t peers_count, int window, hdlc_crc_t crc_type)
 {
-    return (buffer_size - (TINY_ALIGN_STRUCT_VALUE - 1) -
-            sizeof(tiny_fd_data_t)
+    return (buffer_size - (TINY_ALIGN_STRUCT_VALUE - 1)
+            - sizeof(tiny_fd_data_t)
+            - peers_count * sizeof(tiny_fd_peer_info_t)
             // RX overhead
-            - sizeof(hdlc_ll_data_t) - sizeof(tiny_frame_header_t) -
-            get_crc_field_size(crc_type)
+            - sizeof(hdlc_ll_data_t) - sizeof(tiny_frame_header_t) - get_crc_field_size(crc_type)
             // TX overhead
-            - window * (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_fd_frame_info_t) -
-                        sizeof(((tiny_fd_frame_info_t *)0)->payload)) -
-           (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_fd_frame_info_t)) * TINY_FD_U_QUEUE_MAX_SIZE ) /
+            - (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_fd_frame_info_t) -
+                   sizeof(((tiny_fd_frame_info_t *)0)->payload)) * window
+            - (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_fd_frame_info_t)) * TINY_FD_U_QUEUE_MAX_SIZE ) /
            (window + 1);
 }
 
@@ -545,6 +571,7 @@ static int tiny_fd_calculate_mtu_size(int buffer_size, int window, hdlc_crc_t cr
 
 int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
 {
+    const uint8_t peers_count = 1;
     *handle = NULL;
     if ( (0 == init->on_frame_cb) || (0 == init->buffer) || (0 == init->buffer_size) )
     {
@@ -553,23 +580,18 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     }
     if ( init->mtu == 0 )
     {
-        init->mtu = tiny_fd_calculate_mtu_size(init->buffer_size, init->window_frames, init->crc_type);
+        init->mtu = tiny_fd_calculate_mtu_size(init->buffer_size, peers_count, init->window_frames, init->crc_type);
         if ( init->mtu < 1 )
         {
             LOG(TINY_LOG_CRIT, "Calculated mtu size is zero, no payload transfer is available\n");
             return TINY_ERR_OUT_OF_MEMORY;
         }
     }
-    if ( init->buffer_size < tiny_fd_buffer_size_by_mtu_ex(init->mtu, init->window_frames, init->crc_type, 1) )
+    if ( init->buffer_size < tiny_fd_buffer_size_by_mtu_ex(peers_count, init->mtu, init->window_frames, init->crc_type, 1) )
     {
         LOG(TINY_LOG_CRIT, "Too small buffer for FD protocol %i < %i\n", init->buffer_size,
-            tiny_fd_buffer_size_by_mtu_ex(init->mtu, init->window_frames, init->crc_type, 1));
+            tiny_fd_buffer_size_by_mtu_ex(peers_count, init->mtu, init->window_frames, init->crc_type, 1));
         return TINY_ERR_OUT_OF_MEMORY;
-    }
-    if ( init->window_frames > 7 )
-    {
-        LOG(TINY_LOG_CRIT, "HDLC doesn't support more than 7-frames queue\n");
-        return TINY_ERR_INVALID_DATA;
     }
     if ( init->window_frames < 2 )
     {
@@ -586,29 +608,25 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     /* Lets locate main FD protocol data at the beginning of specified buffer.
      * The buffer must be properly aligned for ARM processors to get correct alignment for tiny_fd_data_t structure.
      * That's why we allocate the space for the tiny_fd_data_t structure at the beginning. */
-    uint8_t *ptr = (uint8_t *)( ((uintptr_t)init->buffer + TINY_ALIGN_STRUCT_VALUE - 1) & (~(TINY_ALIGN_STRUCT_VALUE - 1)) );
+    uint8_t *ptr = TINY_ALIGN_BUFFER(init->buffer);
     tiny_fd_data_t *protocol = (tiny_fd_data_t *)ptr;
     ptr += sizeof(tiny_fd_data_t);
     /* Next let's allocate the space for low level hdlc structure. It will be located right next to the tiny_fd_data_t.
      * To do that we need to calculate the size required for all FD buffers
-     * */
+     * We do not need to align the buffer for the HDLC level, since it done by low level API. */
     uint8_t *hdlc_ll_ptr = ptr;
     int hdlc_ll_size = (int)((uint8_t *)init->buffer + init->buffer_size - ptr - // Remaining size
                              init->window_frames *                               // Number of frames multiply by frame size (headers + payload + pointers)
                                  ( sizeof(tiny_fd_frame_info_t *) + init->mtu + sizeof(tiny_fd_frame_info_t) - sizeof(((tiny_fd_frame_info_t *)0)->payload) ) -
                              TINY_FD_U_QUEUE_MAX_SIZE *
-                                 (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_fd_frame_info_t)));
-    /* All FD protocol structures must be aligned. That's why we fix the size, allocated for hdlc low level */
+                                 (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_fd_frame_info_t)) -
+                             peers_count * sizeof(tiny_fd_peer_info_t));
+    /* All FD protocol structures must be aligned. */
     hdlc_ll_size &= ~(TINY_ALIGN_STRUCT_VALUE - 1);
     ptr += hdlc_ll_size;
-    if ( (uintptr_t)ptr % TINY_ALIGN_STRUCT_VALUE != 0 )
-    {
-        LOG(TINY_LOG_CRIT, "Error in alignment, when allocating internal structures 2\n");
-        return TINY_ERR_FAILED;
-    }
+    ptr = TINY_ALIGN_BUFFER(ptr);
 
     /* Next we need some space to hold pointers to tiny_i_frame_info_t records (window_frames pointers) */
-    protocol->frames.window_size = init->window_frames;
     int queue_size = tiny_fd_queue_init( &protocol->frames.i_queue, ptr, (int)((uint8_t *)init->buffer + init->buffer_size - ptr),
                                          init->window_frames, init->mtu );
     if ( queue_size < 0 )
@@ -616,13 +634,21 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
         return queue_size;
     }
     ptr += queue_size;
-    queue_size = tiny_fd_queue_init( &protocol->s_queue, ptr, (int)((uint8_t *)init->buffer + init->buffer_size - ptr),
+    ptr = TINY_ALIGN_BUFFER(ptr);
+    queue_size = tiny_fd_queue_init( &protocol->frames.s_queue, ptr, (int)((uint8_t *)init->buffer + init->buffer_size - ptr),
                                      TINY_FD_U_QUEUE_MAX_SIZE, 2 );
     if ( queue_size < 0 )
     {
         return queue_size;
     }
     ptr += queue_size;
+
+    /* Next we allocate some space for peer-related data */
+    ptr = TINY_ALIGN_BUFFER(ptr);
+    protocol->peers_count = peers_count;
+    protocol->peers = (tiny_fd_peer_info_t *)ptr;
+    ptr += sizeof(tiny_fd_peer_info_t) * peers_count;
+
     if ( ptr > (uint8_t *)init->buffer + init->buffer_size )
     {
         LOG(TINY_LOG_CRIT, "Out of provided memory: provided %i bytes, used %i bytes\n", init->buffer_size,
@@ -649,16 +675,21 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     protocol->user_data = init->pdata;
     protocol->on_frame_cb = init->on_frame_cb;
     protocol->on_send_cb = init->on_send_cb;
+    protocol->on_connect_event_cb = init->on_connect_event_cb;
     protocol->send_timeout = init->send_timeout;
     protocol->ka_timeout = 5000;
     protocol->retry_timeout =
         init->retry_timeout ? init->retry_timeout : (protocol->send_timeout / (init->retries + 1));
     protocol->retries = init->retries;
-    protocol->peers[0].retries = init->retries;
-    protocol->peers[0].state = TINY_FD_STATE_DISCONNECTED;
+    for (uint8_t peer = 0; peer < protocol->peers_count; peer++ )
+    {
+        protocol->peers[peer].retries = init->retries;
+        protocol->peers[peer].addr = 0xFF;
+        protocol->peers[peer].state = TINY_FD_STATE_DISCONNECTED;
+        tiny_events_create(&protocol->peers[peer].events);
+    }
 
     tiny_mutex_create(&protocol->frames.mutex);
-    tiny_events_create(&protocol->peers[0].events);
     tiny_events_create(&protocol->events);
     tiny_events_set( &protocol->events, FD_EVENT_QUEUE_HAS_FREE_SLOTS );
     *handle = protocol;
@@ -671,7 +702,10 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
 void tiny_fd_close(tiny_fd_handle_t handle)
 {
     hdlc_ll_close(handle->_hdlc);
-    tiny_events_destroy(&handle->peers[0].events);
+    for (uint8_t peer = 0; peer < handle->peers_count; peer++ )
+    {
+        tiny_events_destroy(&handle->peers[peer].events);
+    }
     tiny_events_destroy(&handle->events);
     tiny_mutex_destroy(&handle->frames.mutex);
 }
@@ -717,7 +751,7 @@ static uint8_t *tiny_fd_get_next_frame_to_send(tiny_fd_handle_t handle, int *len
     uint8_t address = __peer_to_address_field( handle, peer );
     // Tx data available
     tiny_mutex_lock(&handle->frames.mutex);
-    tiny_fd_frame_info_t *ptr = tiny_fd_queue_get_next( &handle->s_queue, TINY_FD_QUEUE_S_FRAME | TINY_FD_QUEUE_U_FRAME, address, 0 );
+    tiny_fd_frame_info_t *ptr = tiny_fd_queue_get_next( &handle->frames.s_queue, TINY_FD_QUEUE_S_FRAME | TINY_FD_QUEUE_U_FRAME, address, 0 );
     if ( ptr != NULL )
     {
         // clear queue only, when send is done, so for now, use pointer data for sending only
@@ -982,15 +1016,20 @@ int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *data, int len, uint
 
 int tiny_fd_buffer_size_by_mtu(int mtu, int window)
 {
-    return tiny_fd_buffer_size_by_mtu_ex(mtu, window, HDLC_CRC_16, 1);
+    return tiny_fd_buffer_size_by_mtu_ex(0, mtu, window, HDLC_CRC_16, 1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tiny_fd_buffer_size_by_mtu_ex(int mtu, int tx_window, hdlc_crc_t crc_type, int rx_window)
+int tiny_fd_buffer_size_by_mtu_ex(uint8_t peers_count, int mtu, int tx_window, hdlc_crc_t crc_type, int rx_window)
 {
+    if ( !peers_count )
+    {
+        peers_count = 1;
+    }
     // Alignment requirements are already satisfied by hdlc_ll_get_buf_size_ex() subfunction call
     return sizeof(tiny_fd_data_t) +
+           peers_count * sizeof(tiny_fd_peer_info_t) +
            // RX side
            hdlc_ll_get_buf_size_ex(mtu + sizeof(tiny_frame_header_t), crc_type, rx_window) +
            // TX side

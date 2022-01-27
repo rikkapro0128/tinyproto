@@ -1,5 +1,5 @@
 /*
-    Copyright 2016-2021 (C) Alexey Dynda
+    Copyright 2016-2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -51,6 +51,7 @@ extern "C"
 #endif
 
 #include <stdint.h>
+#include <stdbool.h>
 
 
 #ifndef CONFIG_TINYHAL_THREAD_SUPPORT
@@ -88,6 +89,7 @@ extern "C"
 #endif
 
 #define TINY_ALIGNED_STRUCT TINY_ALIGNED(TINY_ALIGN_STRUCT_VALUE)
+#define TINY_ALIGN_BUFFER(x) ((uint8_t *)( ((uintptr_t)x + TINY_ALIGN_STRUCT_VALUE - 1) & (~(TINY_ALIGN_STRUCT_VALUE - 1)) ))
 
 /**
  * @ingroup ERROR_CODES
@@ -172,6 +174,16 @@ extern "C"
      */
     typedef void (*on_frame_send_cb_t)(void *udata, const uint8_t *pdata, int size);
 
+
+
+    /**
+     * on_connect_event_cb_t is a callback function, which is called every time connection is established or interrupted.
+     * @param handle handle of Tiny.
+     * @param address remote client id (only for master device). Not used for now.
+     * @param connected event occured.
+     * @return None.
+     */
+    typedef void (*on_connect_event_cb_t)(void *handle, uint8_t address, bool connected);
 
 #define EVENT_BITS_ALL 0xFF ///< All bits supported by tiny HAL events
 #define EVENT_BITS_CLEAR 1  ///< Flag, used in tiny_events_wait()

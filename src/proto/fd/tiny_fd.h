@@ -1,5 +1,5 @@
 /*
-    Copyright 2019-2021 (C) Alexey Dynda
+    Copyright 2019-2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -110,6 +110,13 @@ extern "C"
          * will automatically calculate mtu based on buffer_size, window_frames.
          */
         int mtu;
+
+        /**
+         * Callback to get the notification when connect or disconnect event takes place.
+         * Can be NULL.
+         */
+        on_connect_event_cb_t on_connect_event_cb;
+
     } tiny_fd_init_t;
 
     /**
@@ -257,12 +264,13 @@ extern "C"
     /**
      * Returns minimum required buffer size for specified parameters.
      *
+     * @param peers_count maximum number of peers supported by the master. Use 0 or 1 for slave devices
      * @param mtu size of desired user payload in bytes.
      * @param tx_window maximum tx queue size of I-frames.
      * @param crc_type crc type to be used with FD protocol
      * @param rx_window number of RX ring buffer in frames
      */
-    extern int tiny_fd_buffer_size_by_mtu_ex(int mtu, int tx_window, hdlc_crc_t crc_type, int rx_window);
+    extern int tiny_fd_buffer_size_by_mtu_ex(uint8_t peers_count, int mtu, int tx_window, hdlc_crc_t crc_type, int rx_window);
 
     /**
      * @brief returns max packet size in bytes.
