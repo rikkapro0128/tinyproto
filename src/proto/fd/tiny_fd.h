@@ -42,6 +42,28 @@ extern "C"
      * @{
      */
 
+    enum
+    {
+        /**
+         * Asynchronous balanced mode - the default mode of HDLC protocol.
+         * ABM adds combined terminal which can act as both a primary and a secondary.
+         */
+        TINY_FD_MODE_ABM = 0x00,
+
+        /**
+         * Normal response mode allows the secondary-to-primary link to be shared without
+         * contention, because it has the primary give the secondaries permission to transmit
+         * one at a time.
+         * @warning This mode is still in development
+         */
+        TINY_FD_MODE_NRM = 0x01,
+
+        /**
+         * Asynchronous response mode. NOT IMPLEMENTED.
+         */
+        TINY_FD_MODE_ARM = 0x02,
+    };
+
     struct tiny_fd_data_t;
 
     /**
@@ -116,6 +138,25 @@ extern "C"
          * Can be NULL.
          */
         on_connect_event_cb_t on_connect_event_cb;
+
+        /**
+         * Local station address. Has meaning only for slave stations
+         */
+        uint8_t addr;
+
+        /**
+         * Maximum number of peers supported by the local station.
+         * If the value is equal to 0, that means that only one remote station is supported.
+         * For slave stations this value must be set to 1 or 0.
+         * For master stations this value can be in range 0 - 63.
+         * @warning Use 1 or 0 for now
+         */
+        uint8_t peers_count;
+
+        /**
+         * Communication link mode. Refer to TINY_FD_MODE_ABM, TINY_FD_MODE_NRM, TINY_FD_MODE_ARM.
+         */
+        uint8_t mode;
 
     } tiny_fd_init_t;
 
@@ -309,6 +350,18 @@ extern "C"
      * @param keep_alive timeout in milliseconds
      */
     extern void tiny_fd_set_ka_timeout(tiny_fd_handle_t handle, uint32_t keep_alive);
+
+    /**
+     * Registers remote peer with specified address. Remember that 2 lower bits of the address
+     * will be ignored. 0x00 and 0xFF addresses are restricted as they are dedicated to
+     * master station.
+     * @param handle   pointer to tiny_fd_handle_t
+     * @param handle   pointer to tiny_fd_handle_t
+     *
+     * @return TINY_SUCCESS in case of success or TINY_ERR_FAILED if there is no free slots
+     *         for new peer, wrong address is specified, or peer is already registered.
+     */
+    extern int tiny_fd_register_peer(tiny_fd_handle_t handle, uint8_t address);
 
     /**
      * @}

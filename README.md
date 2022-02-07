@@ -3,6 +3,8 @@
 [![Build Status](https://circleci.com/gh/lexus2k/tinyproto.svg?style=svg)](https://circleci.com/gh/lexus2k/tinyproto)
 [![Coverage Status](https://coveralls.io/repos/github/lexus2k/tinyproto/badge.svg?branch=master)](https://coveralls.io/github/lexus2k/tinyproto?branch=master)
 [![Documentation](https://codedocs.xyz/lexus2k/tinyproto.svg)](https://codedocs.xyz/lexus2k/tinyproto/)
+![License](https://img.shields.io/badge/license-LGPLv3-blue)
+
 
 [tocstart]: # (toc start)
 
@@ -43,14 +45,14 @@ Main features:
  * High level hdlc implementation for backward compatibility with previous releases (hdlc_xxxx API)
  * Easy to use Light protcol (tiny_light_xxxx API, see examples)
  * Full-duplex protocol (tiny_fd_xxxx true RFC 1662 implementation, supports confirmation, frames retransmissions)
- * Error detection (low level, high level hdlc and full duplex (fd) protocols)
+ * Error detection
    * Simple 8-bit checksum (sum of bytes)
    * FCS16 (CCITT-16)
    * FCS32 (CCITT-32)
- * Frames of maximum 32K or 2G size (payload limit depends on platform).
- * Low SRAM consumption (starts at 50 bytes).
- * Low Flash consumption (starts at 1KiB, features can be disabled and enabled at compilation time)
- * No dynamic memory allocation
+ * Frames of maximum 32K or 2G size (payload limit depends on platfrom).
+ * Low SRAM consumption (starts at 60 bytes).
+ * Low Flash consumption (starts at 1.2KiB, features can be disabled and enabled at compilation time)
+ * No dynamic memory allocation!
  * Special serial loopback tool for debug purposes and performance testing
 
 ## Supported platforms
@@ -229,6 +231,8 @@ For more information about this library, please, visit https://github.com/lexus2
 Doxygen documentation can be found at [Codedocs xyz site](https://codedocs.xyz/lexus2k/tinyproto).
 If you found any problem or have any idea, please, report to Issues section.
 If you find the library useful and want to [support future development](https://www.paypal.me/lexus2k), you may contact me.
+
+BTC: ![BTC](.travis/btc_segwit.png) ETH: ![ETH](.travis/eth.png)<br>
 
 ## License
 
