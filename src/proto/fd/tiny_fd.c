@@ -700,7 +700,8 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
      * To do that we need to calculate the size required for all FD buffers
      * We do not need to align the buffer for the HDLC level, since it done by low level API. */
     uint8_t *hdlc_ll_ptr = ptr;
-    int hdlc_ll_size = (int)((uint8_t *)init->buffer + init->buffer_size - ptr - // Remaining size
+    // TODO: Hack
+    int hdlc_ll_size = (int)((uint8_t *)init->buffer + init->buffer_size - ptr - 4 - // Remaining size
                              init->window_frames *                               // Number of frames multiply by frame size (headers + payload + pointers)
                                  ( sizeof(tiny_fd_frame_info_t *) + init->mtu + sizeof(tiny_fd_frame_info_t) - sizeof(((tiny_fd_frame_info_t *)0)->payload) ) -
                              TINY_FD_U_QUEUE_MAX_SIZE *
@@ -1086,7 +1087,7 @@ int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *data, int len, uint
     uint32_t start_ms = tiny_millis();
     if ( len > tiny_fd_queue_get_mtu( &handle->frames.i_queue ) )
     {
-        LOG(TINY_LOG_ERR, "[%p] PUT frame error: data len %i is greater MTU %i\n", handle, len, handle->frames.mtu);
+        LOG(TINY_LOG_ERR, "[%p] PUT frame error: data len %i is greater MTU %i\n", handle, len, handle->frames.i_queue.mtu);
         result = TINY_ERR_DATA_TOO_LARGE;
     }
     // Wait until there is room for new frame

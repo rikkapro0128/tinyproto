@@ -64,10 +64,8 @@ public:
      */
     IPacket(char *buf, int size)
     {
-        m_len = 0;
         m_size = static_cast<int>(size);
         m_buf = (uint8_t *)buf;
-        m_p = 0;
     }
 
     IPacket(const IPacket &packet)
@@ -75,15 +73,10 @@ public:
         m_len = packet.m_len;
         m_size = packet.m_size;
         m_buf = packet.m_buf;
-        m_p = 0;
     }
 
     IPacket()
     {
-        m_len = 0;
-        m_size = 0;
-        m_buf = nullptr;
-        m_p = 0;
     }
 
     /**
@@ -291,10 +284,12 @@ private:
     friend class Light;
     friend class Proto;
 
-    uint8_t *m_buf;
-    int m_size;
-    int m_len;
-    int m_p;
+    uint8_t *m_buf = nullptr;
+    IPacket *m_next = nullptr; // For organizing ring buffers
+    IPacket *m_prev = nullptr; // For organizing ring buffers
+    int m_size = 0; // maximum space available for payload data
+    int m_len = 0;  // length of payload data
+    int m_p = 0;    // current pointer
 };
 
 /**

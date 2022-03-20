@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 (C) Alexey Dynda
+    Copyright 2021-2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -25,7 +25,6 @@ namespace tinyproto
 enum
 {
     PROTO_RX_MESSAGE = 1,
-    PROTO_RX_QUEUE_FREE = 2,
 };
 
 Proto::Proto(bool multithread)
@@ -33,11 +32,13 @@ Proto::Proto(bool multithread)
    , m_multithread( multithread )
 {
     tiny_events_create( &m_events );
+    tiny_mutex_create( &m_mutex );
 }
 
 Proto::~Proto()
 {
     end();
+    tiny_mutex_destroy( &m_mutex );
     tiny_events_destroy( &m_events );
 }
 
@@ -53,7 +54,6 @@ ILinkLayer &Proto::getLink()
 
 bool Proto::begin()
 {
-    tiny_events_set( &m_events, PROTO_RX_QUEUE_FREE );
     uint32_t timeout = m_link->getTimeout();
     if ( m_multithread && !timeout )
     {
@@ -80,6 +80,11 @@ bool Proto::begin()
     return true;
 }
 
+bool Proto::begin(int poolBuffers)
+{
+    return Proto::begin();
+}
+
 bool Proto::send(const IPacket &packet, uint32_t timeout)
 {
     bool result = false;
@@ -95,7 +100,7 @@ bool Proto::send(const IPacket &packet, uint32_t timeout)
         if ( static_cast<uint32_t>(tiny_millis() - startTs) >= timeout )
         {
             // Cancel send operation if possible
-            m_link->put( nullptr, 0, 0 );
+            m_link->flushTx();
             break;
         }
         if ( !m_multithread )
@@ -107,28 +112,30 @@ bool Proto::send(const IPacket &packet, uint32_t timeout)
     return result;
 }
 
-bool Proto::read(IPacket &packet, uint32_t timeout)
+IPacket *Proto::read(uint32_t timeout)
 {
-    int result = TINY_ERR_FAILED;
+    IPacket *p = nullptr;
     uint32_t startTs = tiny_millis();
     for ( ;; )
     {
         uint8_t bits = tiny_events_wait(&m_events, PROTO_RX_MESSAGE, EVENT_BITS_CLEAR, m_multithread ? timeout : 0);
-        if ( bits & PROTO_RX_MESSAGE )
+        if ( bits )
         {
-            if ( packet.m_buf )
+            tiny_mutex_lock( &m_mutex );
+            if ( m_queue != nullptr )
             {
-                memcpy( packet.m_buf, m_message, m_messageLen );
+                p = m_queue;
+                m_queue = m_queue->m_next;
+                if ( m_queue )
+                {
+                    m_queue->m_prev = nullptr;
+                }
+                else
+                {
+                    m_last = nullptr;
+                }
             }
-            else
-            {
-                packet.m_buf = m_message;
-                packet.m_size = m_link->getMtu();
-            }
-            packet.m_len = m_messageLen;
-            packet.m_p = 0;
-            tiny_events_set( &m_events, PROTO_RX_QUEUE_FREE );
-            result = TINY_SUCCESS;
+            tiny_mutex_unlock( &m_mutex );
             break;
         }
         // Always run Tx/Rx loop before checking timings, otherwise messages will be never received
@@ -142,7 +149,7 @@ bool Proto::read(IPacket &packet, uint32_t timeout)
             break;
         }
     }
-    return result == TINY_SUCCESS;
+    return p;
 }
 
 void Proto::end()
@@ -170,14 +177,55 @@ void Proto::end()
 
 void Proto::onRead(uint8_t *buf, int len)
 {
-    uint8_t bits = tiny_events_wait(&m_events, PROTO_RX_QUEUE_FREE, EVENT_BITS_CLEAR, 0);
-    if ( bits == 0 )
+    // We do not need pool for callback mode
+    if ( m_onRx )
+    {
+        IPacket packet((char *)buf, len);
+        packet.m_len = len;
+        m_onRx(*this, packet);
+        return;
+    }
+    tiny_mutex_lock( &m_mutex );
+    IPacket * p = m_pool;
+    if ( p == nullptr )
     {
         // TODO: Lost frame
-//        printf("#################################################### LOST\n");
     }
-    m_message = buf;
-    m_messageLen = len;
+    else
+    {
+        // Remove from pool
+        m_pool = m_pool->m_next;
+        if ( m_pool )
+        {
+            m_pool->m_prev = nullptr;
+        }
+        // Add to rx queue
+        p->m_next = nullptr;
+        p->m_prev = m_last;
+        if ( m_last )
+        {
+            m_last->m_next = p;
+        }
+        m_last = p;
+        if ( m_queue == nullptr )
+        {
+            m_queue = p;
+        }
+        // Copy data if needed
+        if ( p->m_size == 0 )
+        {
+            p->m_buf = buf;
+            p->m_len = len;
+        }
+        else
+        {
+            // TODO: Error if oversize
+            p->m_len = p->m_size < len ? p->m_size: len;
+            memcpy( p->m_buf, buf, p->m_len );
+        }
+        p->m_p = 0;
+    }
+    tiny_mutex_unlock( &m_mutex );
     tiny_events_set( &m_events, PROTO_RX_MESSAGE );
 }
 
@@ -226,6 +274,32 @@ void Proto::setTxDelay( uint32_t delay )
     m_txDelay = delay;
 }
 #endif
+
+void Proto::release(IPacket *message)
+{
+    addRxPool(*message);
+}
+
+void Proto::addRxPool(IPacket &message)
+{
+    tiny_mutex_lock( &m_mutex );
+    message.m_next = m_pool;
+    message.m_prev = nullptr;
+    if ( m_pool == nullptr )
+    {
+        m_pool = &message;
+    }
+    else
+    {
+        m_pool->m_prev = &message;
+    }
+    tiny_mutex_unlock( &m_mutex );
+}
+
+void Proto::setRxCallback(void (*onRx)(Proto &, IPacket &))
+{
+    m_onRx = onRx;
+}
 
 //////////// Platform specific helper classes
 

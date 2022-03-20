@@ -19,21 +19,26 @@
 // messages upto 32 bytes, we will use Serial0
 tinyproto::SerialFdProto proto(Serial);
 
+void onRead(tinyproto::Proto &proto, tinyproto::IPacket &packet)
+{
+    // process received packet here
+    // send it back
+    proto.send(packet, 0);
+}
+
 void setup()
 {
     /* Run at 115200 */
     proto.getLink().setSpeed( 115200 );
     /* Lets use 8-bit checksum, available on all platforms */
     proto.getLink().setCrc( HDLC_CRC_8 ); //enableCheckSum();
+    /* Set callback for incoming packets */
+    proto.setRxCallback( onRead );
     /* Start */
     proto.begin();
 }
 
 void loop()
 {
-    tinyproto::IPacket packet;
-    if ( proto.read(packet, 0) )
-    {
-        // process received packet
-    }
+    proto.read(0);
 }

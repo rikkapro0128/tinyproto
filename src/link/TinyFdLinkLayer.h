@@ -1,5 +1,5 @@
 /*
-    Copyright 2016-2021 (C) Alexey Dynda
+    Copyright 2016-2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -40,6 +40,8 @@ public:
     void end() override;
 
     bool put(void *buf, int size, uint32_t timeout) override;
+
+    void flushTx() override;
 
     int getWindow()
     {

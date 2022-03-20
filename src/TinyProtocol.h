@@ -1,5 +1,5 @@
 /*
-    Copyright 2016-2022 (,2022 (C) Alexey Dynda
+    Copyright 2016-2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -69,11 +69,19 @@ public:
 
     bool begin();
 
+    bool begin(int poolBuffers);
+
     bool send(const IPacket &message, uint32_t timeout);
 
-    bool read(IPacket &message, uint32_t timeout);
+    IPacket *read(uint32_t timeout);
 
     void end();
+
+    void release(IPacket *message);
+
+    void addRxPool(IPacket &message);
+
+    void setRxCallback(void (*onRx)(Proto &, IPacket &));
 
 #if CONFIG_TINYHAL_THREAD_SUPPORT == 1
     void setTxDelay( uint32_t delay );
@@ -81,10 +89,12 @@ public:
 
 private:
     ILinkLayer *m_link = nullptr;
+    void (*m_onRx)(Proto &, IPacket &) = nullptr;
     bool m_multithread = false;
-    uint8_t *m_message = nullptr;
-    int m_messageLen;
     bool m_terminate = true;
+    IPacket *m_pool = nullptr;
+    IPacket *m_queue = nullptr;
+    IPacket *m_last = nullptr;
 #if CONFIG_TINYHAL_THREAD_SUPPORT == 1
     std::thread *m_sendThread = nullptr;
     std::thread *m_readThread = nullptr;
@@ -92,6 +102,8 @@ private:
 #endif
 
     tiny_events_t m_events{};
+
+    tiny_mutex_t m_mutex{};
 
     void onRead(uint8_t *buf, int len);
 
@@ -106,7 +118,6 @@ private:
 
     void runRx();
 #endif
-
 };
 
 /////// Helper classes, platform specific
@@ -158,7 +169,6 @@ public:
 private:
     SerialHdlcLink m_layer;
 };
-
 
 #endif
 

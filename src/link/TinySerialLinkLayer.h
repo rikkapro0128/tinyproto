@@ -1,5 +1,5 @@
 /*
-    Copyright 2016-2021 (C) Alexey Dynda
+    Copyright 2016-2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -25,6 +25,12 @@
 namespace tinyproto
 {
 
+/**
+ * Template class for Serial-based communication for any of TinyProto Links
+ *
+ * @param BASE Base class for protocol type: IFdLinkLayer or IHdlcLinkLayer.
+ * @param BSIZE Maximum block size which can be transmitted via Serial Link as single block
+ */
 template <class BASE, int BSIZE> class ISerialLinkLayer: public BASE
 {
 public:

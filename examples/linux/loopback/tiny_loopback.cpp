@@ -158,25 +158,26 @@ static int runLoopBackMode( tinyproto::Proto &proto )
     /* Run main cycle forever */
     while ( !s_terminate )
     {
-        tinyproto::HeapPacket packet(s_packetSize);
+        tinyproto::IPacket *packet = proto.read( 100 );
         // Use timeout of 100 milliseconds, since we don't want to create busy loop
-        if ( proto.read( packet, 100 ) )
+        if ( packet )
         {
             if ( !s_runTest )
-                fprintf(stderr, "<<< Frame received payload len=%d\n", packet.size());
-            s_receivedBytes += static_cast<int>(packet.size());
+                fprintf(stderr, "<<< Frame received payload len=%d\n", packet->size());
+            s_receivedBytes += static_cast<int>(packet->size());
             // Add 10 milliseconds timeout to give for Light/Hdlc protocols some time
             // to wait until message is sent
-            if ( !proto.send( packet, 10 ) )
+            if ( !proto.send( *packet, 10 ) )
             {
                 fprintf(stderr, "Failed to loopback packet\n");
             }
             else
             {
                 if ( !s_runTest )
-                    fprintf(stderr, ">>> Frame sent payload len=%d\n", packet.size());
-                 s_sentBytes += packet.size();
+                    fprintf(stderr, ">>> Frame sent payload len=%d\n", packet->size());
+                 s_sentBytes += packet->size();
             }
+            proto.release( packet );
         }
     }
     return 0;
@@ -190,13 +191,14 @@ static int runGeneratorMode(tinyproto::Proto &proto)
     /* Run main cycle forever */
     while ( !s_terminate )
     {
-        tinyproto::IPacket packet;
+        tinyproto::IPacket *packet = proto.read( 0 );
         // Use timeout 0. If remote side is not ready yet, attempt to send packet
-        if ( proto.read( packet, 0 ) )
+        if ( packet )
         {
             if ( !s_runTest )
-                fprintf(stderr, "<<< Frame received payload len=%d\n", (int)packet.size());
-            s_receivedBytes += static_cast<int>(packet.size());
+                fprintf(stderr, "<<< Frame received payload len=%d\n", (int)packet->size());
+            s_receivedBytes += static_cast<int>(packet->size());
+            proto.release( packet );
         }
         tinyproto::HeapPacket outPacket(s_packetSize);
         while ( outPacket.size() < s_packetSize )
@@ -257,6 +259,10 @@ static int run(tiny_serial_handle_t port)
         proto.setTxDelay( 1500 );
     }
 
+    tinyproto::HeapPacket packet1(s_packetSize);
+    tinyproto::HeapPacket packet2(s_packetSize);
+    proto.addRxPool( packet1 );
+    proto.addRxPool( packet2 );
     if ( !proto.begin() )
     {
          return -1;

@@ -74,6 +74,11 @@ public:
     virtual bool put(void *buf, int size, uint32_t timeout) = 0;
 
     /**
+     * Flush tx operation if possible
+     */
+    virtual void flushTx() = 0;
+
+    /**
      * Sets timeout of Rx/Tx operations in milliseconds for the link layer protocol.
      * This is not the same timeout, as timeout used by put() method.
      *

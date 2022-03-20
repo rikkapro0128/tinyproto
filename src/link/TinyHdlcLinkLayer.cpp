@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 (C) Alexey Dynda
+    Copyright 2021-2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -69,14 +69,6 @@ void IHdlcLinkLayer::end()
 bool IHdlcLinkLayer::put(void *buf, int size, uint32_t timeout)
 {
     bool result = false;
-    if ( !buf )
-    {
-        tiny_mutex_lock( &m_sendMutex );
-        hdlc_ll_reset( m_handle, HDLC_LL_RESET_TX_ONLY );
-        tiny_mutex_unlock( &m_sendMutex );
-        tiny_events_set( &m_events, TX_QUEUE_FREE );
-        result = true;
-    }
     uint8_t bits = tiny_events_wait( &m_events, TX_QUEUE_FREE, EVENT_BITS_CLEAR, timeout );
     if ( bits )
     {
@@ -98,6 +90,14 @@ bool IHdlcLinkLayer::put(void *buf, int size, uint32_t timeout)
         tiny_mutex_unlock( &m_sendMutex );
     }
     return result;
+}
+
+void IHdlcLinkLayer::flushTx()
+{
+    tiny_mutex_lock( &m_sendMutex );
+    hdlc_ll_reset( m_handle, HDLC_LL_RESET_TX_ONLY );
+    tiny_mutex_unlock( &m_sendMutex );
+    tiny_events_set( &m_events, TX_QUEUE_FREE );
 }
 
 int IHdlcLinkLayer::parseData(const uint8_t *data, int size)

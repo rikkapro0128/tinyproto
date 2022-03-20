@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 (C) Alexey Dynda
+    Copyright 2021-2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -58,11 +58,11 @@ void IFdLinkLayer::end()
 
 bool IFdLinkLayer::put(void *buf, int size, uint32_t timeout)
 {
-    if ( !buf )
-    {
-        return false;
-    }
     return tiny_fd_send_packet(m_handle, buf, size, timeout) >= 0;
+}
+
+void IFdLinkLayer::flushTx()
+{
 }
 
 int IFdLinkLayer::parseData(const uint8_t *data, int size)

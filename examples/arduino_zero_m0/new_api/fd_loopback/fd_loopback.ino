@@ -17,9 +17,7 @@
 
 // By default SerialFdProto class allows sending and receiving
 // messages upto 32 bytes, we will use Serial0
-
-tinyproto::SerialFdProto proto(Serial);
-tinyproto::StaticPacket<32> poolPacket;
+tinyproto::SerialFdProto proto(SerialUSB);
 
 void setup()
 {
@@ -27,20 +25,15 @@ void setup()
     proto.getLink().setSpeed( 115200 );
     /* Lets use 8-bit checksum, available on all platforms */
     proto.getLink().setCrc( HDLC_CRC_8 ); //enableCheckSum();
-    /* Register global packet buffer in the pool */
-    proto.addRxPool( poolPacket );
     /* Start */
     proto.begin();
 }
 
 void loop()
 {
-    IPacket * packet = proto.read(0)
-    if (packet)
+    tinyproto::StaticPacket<32> packet;
+    if ( proto.read(packet, 0) )
     {
         // process received packet
-        // Send it back
-        proto.send(*packet, 100);
-        proto.release(packet);
     }
 }
