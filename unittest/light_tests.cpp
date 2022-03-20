@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2020,2022 (C) Alexey Dynda
+    Copyright 2017-2020,2022 (,2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -45,7 +45,7 @@ TEST_GROUP(LIGHT){void setup(){
 #if 1
 TEST(LIGHT, send_receive)
 {
-    FakeConnection conn;
+    FakeSetup conn;
     conn.endpoint1().setTimeout(100);
     conn.endpoint2().setTimeout(100);
     TinyLightHelper helper1(&conn.endpoint1());
@@ -67,7 +67,7 @@ TEST(LIGHT, send_receive)
 
 TEST(LIGHT, small_frames)
 {
-    FakeConnection conn;
+    FakeSetup conn;
     conn.endpoint1().setTimeout(100);
     conn.endpoint2().setTimeout(100);
     TinyLightHelper helper1(&conn.endpoint1());

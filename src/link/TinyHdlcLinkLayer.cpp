@@ -43,7 +43,7 @@ IHdlcLinkLayer::~IHdlcLinkLayer()
     tiny_mutex_destroy( &m_sendMutex );
 }
 
-bool IHdlcLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata)
+bool IHdlcLinkLayer::begin(on_frame_read_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata)
 {
     hdlc_ll_init_t init{};
     m_onReadCb = onReadCb;
@@ -118,13 +118,13 @@ void IHdlcLinkLayer::onSend(void *udata, const uint8_t *data, int len)
 {
     IHdlcLinkLayer *layer = reinterpret_cast<IHdlcLinkLayer *>(udata);
     tiny_events_set( &layer->m_events, TX_QUEUE_FREE );
-    layer->m_onSendCb( layer->m_udata, data, len );
+    layer->m_onSendCb( layer->m_udata, 0, data, len );
 }
 
 void IHdlcLinkLayer::onRead(void *udata, uint8_t *data, int len)
 {
     IHdlcLinkLayer *layer = reinterpret_cast<IHdlcLinkLayer *>(udata);
-    layer->m_onReadCb( layer->m_udata, data, len );
+    layer->m_onReadCb( layer->m_udata, 0, data, len );
 }
 
 /////////////////////////////////////////////////////////////////////////////

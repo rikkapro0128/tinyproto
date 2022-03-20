@@ -54,7 +54,7 @@
 tinyproto::FdD proto(tiny_fd_buffer_size_by_mtu(128, 7));
 tiny_serial_handle_t s_serial = TINY_SERIAL_INVALID;
 
-void onReceive(void *udata, tinyproto::IPacket &pkt)
+void onReceive(void *udata, uint8_t addr, tinyproto::IPacket &pkt)
 {
     if ( proto.write(pkt) == TINY_ERR_TIMEOUT )
     {

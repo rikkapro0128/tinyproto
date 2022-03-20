@@ -32,7 +32,7 @@ SerialFdLink::~SerialFdLink()
     }
 }
 
-bool SerialFdLink::begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata)
+bool SerialFdLink::begin(on_frame_read_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata)
 {
     int size = tiny_fd_buffer_size_by_mtu_ex(1, getMtu(), getWindow(), getCrc(), 3);
     m_buffer = reinterpret_cast<uint8_t *>(malloc(size));

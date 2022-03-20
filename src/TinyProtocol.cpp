@@ -175,7 +175,7 @@ void Proto::end()
     return;
 }
 
-void Proto::onRead(uint8_t *buf, int len)
+void Proto::onRead(uint8_t addr, uint8_t *buf, int len)
 {
     // We do not need pool for callback mode
     if ( m_onRx )
@@ -229,20 +229,20 @@ void Proto::onRead(uint8_t *buf, int len)
     tiny_events_set( &m_events, PROTO_RX_MESSAGE );
 }
 
-void Proto::onSend(const uint8_t *buf, int len)
+void Proto::onSend(uint8_t addr, const uint8_t *buf, int len)
 {
 }
 
-void Proto::onReadCb(void *udata, uint8_t *buf, int len)
+void Proto::onReadCb(void *udata, uint8_t addr, uint8_t *buf, int len)
 {
     Proto *proto = reinterpret_cast<Proto *>(udata);
-    proto->onRead(buf, len);
+    proto->onRead(addr, buf, len);
 }
 
-void Proto::onSendCb(void *udata, const uint8_t *buf, int len)
+void Proto::onSendCb(void *udata, uint8_t addr, const uint8_t *buf, int len)
 {
     Proto *proto = reinterpret_cast<Proto *>(udata);
-    proto->onSend(buf, len);
+    proto->onSend(addr, buf, len);
 }
 
 #if CONFIG_TINYHAL_THREAD_SUPPORT == 1

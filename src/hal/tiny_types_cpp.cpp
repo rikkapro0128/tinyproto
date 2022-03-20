@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2020,2022 (,2022 (C) Alexey Dynda
+    Copyright 2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -26,39 +26,23 @@
     For further information contact via email on github account.
 */
 
-#include "fake_endpoint.h"
+#include "tiny_types.h"
+#include "tiny_debug.h"
 
-FakeEndpoint::FakeEndpoint(FakeWire &both, int rxSize, int txSize)
-    : m_tx(both)
-    , m_rx(both)
-{
-    m_txBlock = m_tx.CreateTxHardware(txSize);
-    m_rxBlock = m_rx.CreateRxHardware(rxSize);
-}
+#if defined(CONFIG_ENABLE_CPP_HAL)
+#include "cpp/cpp_hal.inl"
+#endif
 
-FakeEndpoint::FakeEndpoint(FakeWire &tx, FakeWire &rx, int rxSize, int txSize)
-    : m_tx(tx)
-    , m_rx(rx)
+#if 0
+#include <Arduino.h>
+static char buffer[1024];
+int my_printf( const char *str, ... )
 {
-    m_txBlock = m_tx.CreateTxHardware(txSize);
-    m_rxBlock = m_rx.CreateRxHardware(rxSize);
+    va_list l;
+    va_start( l, str );
+    int len = vsnprintf(buffer, 1024, str, l);
+    Serial.println(buffer);
+    va_end(l);
+    return len;
 }
-
-FakeEndpoint::~FakeEndpoint()
-{
-}
-
-int FakeEndpoint::read(uint8_t *data, int length)
-{
-    return m_rxBlock->Read(data, length, m_timeout);
-}
-
-int FakeEndpoint::write(const uint8_t *data, int length)
-{
-    return m_txBlock->Write(data, length, m_timeout);
-}
-
-bool FakeEndpoint::wait_until_rx_count(int count, int timeout)
-{
-    return m_rxBlock->WaitUntilRxCount(count, timeout);
-}
+#endif

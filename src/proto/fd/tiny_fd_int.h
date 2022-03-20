@@ -46,14 +46,16 @@ extern "C"
 #define FD_PEER_BUF_SIZE() ( sizeof(tiny_fd_peer_info_t) )
 
 #define FD_MIN_BUF_SIZE(mtu, window)                                                                                   \
-    (sizeof(tiny_fd_data_t) + HDLC_MIN_BUF_SIZE(mtu + sizeof(tiny_frame_header_t), HDLC_CRC_16) +                     \
+    (sizeof(tiny_fd_data_t) + TINY_ALIGN_STRUCT_VALUE - 1 + \
+     HDLC_MIN_BUF_SIZE(mtu + sizeof(tiny_frame_header_t), HDLC_CRC_16) +                     \
       ( 1 * FD_PEER_BUF_SIZE() ) + \
       (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_fd_frame_info_t) + mtu \
                                       - sizeof(((tiny_fd_frame_info_t *)0)->payload) ) * window + \
           ( sizeof(tiny_fd_frame_info_t) + sizeof(tiny_fd_frame_info_t *) ) * TINY_FD_U_QUEUE_MAX_SIZE )
 
 #define FD_BUF_SIZE_EX(mtu, tx_window, crc, rx_window)                                                                      \
-    (sizeof(tiny_fd_data_t) + HDLC_BUF_SIZE_EX(mtu + sizeof(tiny_frame_header_t), crc, rx_window) +           \
+    (sizeof(tiny_fd_data_t) + TINY_ALIGN_STRUCT_VALUE - 1 + \
+     HDLC_BUF_SIZE_EX(mtu + sizeof(tiny_frame_header_t), crc, rx_window) +           \
       ( 1 * FD_PEER_BUF_SIZE() ) + \
       (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_i_frame_info_t) + mtu \
                                       - sizeof(((tiny_fd_frame_info_t *)0)->payload)) * tx_window + \
@@ -110,8 +112,8 @@ extern "C"
     typedef struct tiny_fd_data_t
     {
         /// Callback to process received frames
-        on_frame_cb_t on_frame_cb;
-        /// Callback to get notification of sent frames
+        on_frame_read_cb_t on_read_cb;
+        /// Callback to process received frames
         on_frame_send_cb_t on_send_cb;
         /// Callback to get connect/disconnect notification
         on_connect_event_cb_t on_connect_event_cb;
@@ -127,14 +129,16 @@ extern "C"
         uint8_t retries;
         /// Information for frames being processed
         tiny_frames_info_t frames;
-        /// Peers count supported by the master device
+        /// Peers count supported by the primary device
         uint8_t peers_count;
         /// Information on all peers stations
         tiny_fd_peer_info_t *peers;
-        /// Local address: 0x00 or 0xFF for master devices
+        /// Local address: 0x00 or 0xFF for primary devices
         uint8_t addr;
         /// Next peer to process
         uint8_t next_peer;
+        /// Last marker timestamp
+        uint32_t last_marker_ts;
         /// HDLC mode;
         uint8_t mode;
         /// Global events for HDLC protocol

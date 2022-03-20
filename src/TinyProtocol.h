@@ -105,13 +105,13 @@ private:
 
     tiny_mutex_t m_mutex{};
 
-    void onRead(uint8_t *buf, int len);
+    void onRead(uint8_t addr, uint8_t *buf, int len);
 
-    void onSend(const uint8_t *buf, int len);
+    void onSend(uint8_t addr, const uint8_t *buf, int len);
 
-    static void onReadCb(void *udata, uint8_t *buf, int len);
+    static void onReadCb(void *udata, uint8_t addr, uint8_t *buf, int len);
 
-    static void onSendCb(void *udata, const uint8_t *buf, int len);
+    static void onSendCb(void *udata, uint8_t addr, const uint8_t *buf, int len);
 
 #if CONFIG_TINYHAL_THREAD_SUPPORT == 1
     void runTx();

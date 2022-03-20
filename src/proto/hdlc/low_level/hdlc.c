@@ -38,7 +38,7 @@
 #endif
 
 #if TINY_HDLC_DEBUG
-#define LOG(...) TINY_LOG(__VA_ARGS__)
+#define LOG(lvl, fmt, ...) TINY_LOG(lvl, fmt, __VA_ARGS__)
 #else
 #define LOG(...)
 #endif
@@ -74,7 +74,7 @@ int hdlc_ll_init(hdlc_ll_handle_t *handle, hdlc_ll_init_t *init)
     // Aligning provided buffer for the system
     uint8_t *buf = (uint8_t *)( ((uintptr_t)init->buf + TINY_ALIGN_STRUCT_VALUE - 1) & (~(TINY_ALIGN_STRUCT_VALUE - 1)) );
     int buf_size = (int)(init->buf_size -  (buf - (uint8_t *)init->buf));
-    if ( !init->buf || buf_size < sizeof(hdlc_ll_data_t) )
+    if ( !init->buf || buf_size < (int)sizeof(hdlc_ll_data_t) )
     {
         LOG(TINY_LOG_ERR, "[HDLC] failed to init hdlc. buf=%p, size=%i (%i required)\n", init->buf, init->buf_size,
             (int)(sizeof(hdlc_ll_data_t) + TINY_ALIGN_STRUCT_VALUE - 1));

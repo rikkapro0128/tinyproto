@@ -1,5 +1,5 @@
 /*
-    Copyright 2017,2020,2022 (C) Alexey Dynda
+    Copyright 2017,2020,2022 (,2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -155,5 +155,5 @@ private:
 
     void TransferData(int num_bytes);
 
-    friend class FakeConnection;
+    friend class FakeSetup;
 };

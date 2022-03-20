@@ -36,7 +36,7 @@ public:
 
     ~IHdlcLinkLayer();
 
-    bool begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata) override;
+    bool begin(on_frame_read_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata) override;
 
     void end() override;
 
@@ -69,7 +69,7 @@ protected:
 private:
     hdlc_ll_handle_t m_handle = nullptr;
     void *m_udata;
-    on_frame_cb_t m_onReadCb = nullptr;
+    on_frame_read_cb_t m_onReadCb = nullptr;
     on_frame_send_cb_t m_onSendCb = nullptr;
     tiny_mutex_t  m_sendMutex{};
     tiny_events_t m_events{};

@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2020,2022 (,2022 (C) Alexey Dynda
+    Copyright 2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -26,39 +26,67 @@
     For further information contact via email on github account.
 */
 
-#include "fake_endpoint.h"
+#include <mutex>
 
-FakeEndpoint::FakeEndpoint(FakeWire &both, int rxSize, int txSize)
-    : m_tx(both)
-    , m_rx(both)
-{
-    m_txBlock = m_tx.CreateTxHardware(txSize);
-    m_rxBlock = m_rx.CreateRxHardware(rxSize);
-}
+#error "Not implemented now"
 
-FakeEndpoint::FakeEndpoint(FakeWire &tx, FakeWire &rx, int rxSize, int txSize)
-    : m_tx(tx)
-    , m_rx(rx)
-{
-    m_txBlock = m_tx.CreateTxHardware(txSize);
-    m_rxBlock = m_rx.CreateRxHardware(rxSize);
-}
-
-FakeEndpoint::~FakeEndpoint()
+void tiny_mutex_create(tiny_mutex_t *mutex)
 {
 }
 
-int FakeEndpoint::read(uint8_t *data, int length)
+void tiny_mutex_destroy(tiny_mutex_t *mutex)
 {
-    return m_rxBlock->Read(data, length, m_timeout);
 }
 
-int FakeEndpoint::write(const uint8_t *data, int length)
+void tiny_mutex_lock(tiny_mutex_t *mutex)
 {
-    return m_txBlock->Write(data, length, m_timeout);
 }
 
-bool FakeEndpoint::wait_until_rx_count(int count, int timeout)
+uint8_t tiny_mutex_try_lock(tiny_mutex_t *mutex)
 {
-    return m_rxBlock->WaitUntilRxCount(count, timeout);
 }
+
+void tiny_mutex_unlock(tiny_mutex_t *mutex)
+{
+}
+
+void tiny_events_create(tiny_events_t *events)
+{
+}
+
+void tiny_events_destroy(tiny_events_t *events)
+{
+}
+
+uint8_t tiny_events_wait(tiny_events_t *events, uint8_t bits, uint8_t clear, uint32_t timeout)
+{
+}
+
+uint8_t tiny_events_check_int(tiny_events_t *events, uint8_t bits, uint8_t clear)
+{
+}
+
+void tiny_events_set(tiny_events_t *events, uint8_t bits)
+{
+}
+
+void tiny_events_clear(tiny_events_t *events, uint8_t bits)
+{
+}
+
+void tiny_sleep(uint32_t ms)
+{
+}
+
+void tiny_sleep_us(uint32_t us)
+{
+}
+
+uint32_t tiny_millis(void)
+{
+}
+
+uint32_t tiny_micros(void)
+{
+}
+

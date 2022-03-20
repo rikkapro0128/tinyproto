@@ -32,11 +32,11 @@ IFdLinkLayer::~IFdLinkLayer()
 {
 }
 
-bool IFdLinkLayer::begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata)
+bool IFdLinkLayer::begin(on_frame_read_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata)
 {
     tiny_fd_init_t init{};
     init.pdata = udata;
-    init.on_frame_cb = onReadCb;
+    init.on_read_cb = onReadCb;
     init.on_send_cb = onSendCb;
     init.buffer = m_buffer;
     init.buffer_size = m_bufferSize;

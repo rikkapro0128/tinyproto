@@ -29,7 +29,9 @@
 #include "tiny_types.h"
 #include "tiny_debug.h"
 
-#if defined(TINY_CUSTOM_PLATFORM)
+#if defined(CONFIG_ENABLE_CPP_HAL)
+// Do not include anything here, there is tiny_types_cpp.cpp for it
+#elif defined(TINY_CUSTOM_PLATFORM)
 #include "no_platform/no_platform_hal.inl"
 #elif defined(__AVR__)
 #include "avr/avr_hal.inl"

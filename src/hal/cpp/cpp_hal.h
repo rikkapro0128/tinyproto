@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2020,2022 (,2022 (C) Alexey Dynda
+    Copyright 2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -26,39 +26,42 @@
     For further information contact via email on github account.
 */
 
-#include "fake_endpoint.h"
+#pragma once
 
-FakeEndpoint::FakeEndpoint(FakeWire &both, int rxSize, int txSize)
-    : m_tx(both)
-    , m_rx(both)
-{
-    m_txBlock = m_tx.CreateTxHardware(txSize);
-    m_rxBlock = m_rx.CreateRxHardware(rxSize);
-}
+#include <stdint.h>
 
-FakeEndpoint::FakeEndpoint(FakeWire &tx, FakeWire &rx, int rxSize, int txSize)
-    : m_tx(tx)
-    , m_rx(rx)
-{
-    m_txBlock = m_tx.CreateTxHardware(txSize);
-    m_rxBlock = m_rx.CreateRxHardware(rxSize);
-}
+/* For fastest version of protocol assign all defines to zero.
+ * In this case protocol supports no CRC field, and
+ * all api functions become not thread-safe.
+ */
 
-FakeEndpoint::~FakeEndpoint()
-{
-}
+#ifndef CONFIG_ENABLE_CHECKSUM
+#define CONFIG_ENABLE_CHECKSUM
+#endif
 
-int FakeEndpoint::read(uint8_t *data, int length)
-{
-    return m_rxBlock->Read(data, length, m_timeout);
-}
+#ifndef CONFIG_ENABLE_FCS16
+#define CONFIG_ENABLE_FCS16
+#endif
 
-int FakeEndpoint::write(const uint8_t *data, int length)
-{
-    return m_txBlock->Write(data, length, m_timeout);
-}
+#ifndef CONFIG_ENABLE_FCS32
+#define CONFIG_ENABLE_FCS32
+#endif
 
-bool FakeEndpoint::wait_until_rx_count(int count, int timeout)
+/**
+ * Mutex type used by Tiny Protocol implementation.
+ * The type declaration depends on platform.
+ */
+typedef uintptr_t tiny_mutex_t;
+
+/**
+ * Events group type used by Tiny Protocol implementation.
+ * The type declaration depends on platform.
+ */
+typedef struct
 {
-    return m_rxBlock->WaitUntilRxCount(count, timeout);
-}
+    /** Mutex object to protect bits */
+    tiny_mutex_t mutex;
+    /** Current state of bits */
+    uint8_t bits;
+} tiny_events_t;
+

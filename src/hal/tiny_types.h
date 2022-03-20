@@ -40,7 +40,9 @@ extern "C"
 {
 #endif
 
-#if defined(TINY_CUSTOM_PLATFORM)
+#if defined(CONFIG_ENABLE_CPP_HAL)
+#include "cpp/cpp_hal.h"
+#elif defined(TINY_CUSTOM_PLATFORM)
 #include "no_platform/no_platform_hal.h"
 #elif defined(__AVR__)
 #include "avr/avr_hal.h"
@@ -72,10 +74,13 @@ extern "C"
 
 
 #if defined(_MSC_VER)
+/// This macro is used internally for aligning the structures
 #define TINY_ALIGNED(x)   __declspec(align(x))
 #elif defined(__GNUC__)
+/// This macro is used internally for aligning the structures
 #define TINY_ALIGNED(x)   __attribute__ ((aligned (x)))
 #else
+/// This macro is used internally for aligning the structures
 #define TINY_ALIGNED(x)
 #endif
 
@@ -84,20 +89,26 @@ extern "C"
     defined(__TARGET_CPU_CORTEX_M3) || defined(__TARGET_CPU_CORTEX_M4) || defined(__ARM_ARCH_7EM__) || \
     defined(__ARM_ARCH_7M__)
 
+/// This macro is used internally for aligning the structures
 #define TINY_ALIGN_STRUCT_VALUE     (sizeof(uintptr_t))
 
 #elif defined(_MSC_VER)
 
 // MS Compiler at least in MSVC 2019 doesn't support sizeof and braces in __declspec(align(x)).
+/// This macro is used internally for aligning the structures
 #define TINY_ALIGN_STRUCT_VALUE  8
 
 #else
 
+/// This macro is used internally for aligning the structures
 #define TINY_ALIGN_STRUCT_VALUE     (sizeof(uintptr_t))
 
 #endif
 
+/// This macro is used internally for aligning the structures
 #define TINY_ALIGNED_STRUCT TINY_ALIGNED(TINY_ALIGN_STRUCT_VALUE)
+
+/// This macro is used internally for aligning the structures
 #define TINY_ALIGN_BUFFER(x) ((uint8_t *)( ((uintptr_t)x + TINY_ALIGN_STRUCT_VALUE - 1) & (~(TINY_ALIGN_STRUCT_VALUE - 1)) ))
 
 /**
@@ -124,6 +135,8 @@ extern "C"
 #define TINY_ERR_WRONG_CRC (-8)
 /// Out of memory during operation
 #define TINY_ERR_OUT_OF_MEMORY (-9)
+/// Unknown remote peer
+#define TINY_ERR_UNKNOWN_PEER (-10)
 
 /** @} */
 
@@ -181,14 +194,32 @@ extern "C"
      * @param size   size of data sent.
      * @return None.
      */
-    typedef void (*on_frame_send_cb_t)(void *udata, const uint8_t *pdata, int size);
+    typedef void (*on_tx_frame_cb_t)(void *udata, const uint8_t *pdata, int size);
 
+    /**
+     * on_frame_read_cb_t is a callback function, which is called every time new frame is received.
+     * @param udata user data
+     * @param address address if peer station
+     * @param pdata  pointer to data received from the channel.
+     * @param size   size of data received.
+     * @return None.
+     */
+    typedef void (*on_frame_read_cb_t)(void *udata, uint8_t address, uint8_t *pdata, int size);
 
+    /**
+     * on_frame_send_cb_t is a callback function, which is called every time new frame is sent.
+     * @param udata user data
+     * @param address address of peer station
+     * @param pdata  pointer data sent to the channel.
+     * @param size   size of data sent.
+     * @return None.
+     */
+    typedef void (*on_frame_send_cb_t)(void *udata, uint8_t address, const uint8_t *pdata, int size);
 
     /**
      * on_connect_event_cb_t is a callback function, which is called every time connection is established or interrupted.
      * @param handle handle of Tiny.
-     * @param address remote client id (only for master device). Not used for now.
+     * @param address remote client id (only for master device).
      * @param connected event occured.
      * @return None.
      */

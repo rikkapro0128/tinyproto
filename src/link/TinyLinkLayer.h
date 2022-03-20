@@ -44,7 +44,7 @@ public:
      * @param udata user defined data, will be passed to callbacks
      * @return true if successful, false is initialization error happened.
      */
-    virtual bool begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata) = 0;
+    virtual bool begin(on_frame_read_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata) = 0;
 
     /**
      * Stops link layer protocol

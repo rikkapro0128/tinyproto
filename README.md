@@ -29,32 +29,28 @@ It is also can be compiled for desktop Linux system, and it can be built for Win
 Using this library you can easy implement data transfer between 2 microcontrollers or between microcontroller and pc via UART, SPI,
 I2C or any other communication channels.
 You don't need to think about data synchronization between points. The library use no dynamic allocation of memory.
-TinyProto is based on RFC 1662, it implements the following frames:
- * U-frames (SABM, UA)
- * S-frames (REJ, RR)
- * I-frames
 
-Tiny Protocol is NOT an application layer protocol, although, for example, it can be used with Protocol Buffers.
+TinyProto is based on RFC 1662. Tiny Protocol supports 2 HDLC modes: ABM (for peer to peer connections) and NRM (for
+multi-drop connections).
+
+Tiny Protocol is NOT an application layer protocol, although, for example, it can be used with Protocol Buffers. The protocol supports ABM and NRM modes.
 
 
 ## Key Features
 
 Main features:
- * Hot plug/unplug support
- * Connection autorecover for Full duplex and Light protocols (with enabled crc)
+ * Hot plug/unplug support for ABM (peer to peer).
+ * Connection autorecover for Full duplex (both for ABM and NRM modes) and Light protocols (with enabled crc)
+ * Error detection: Simple 8-bit checksum (sum of bytes), FCS16 (CCITT-16), FCS32 (CCITT-32)
  * Platform independent hdlc framing implementation (hdlc low level API: hdlc_ll_xxxx)
- * High level hdlc implementation for backward compatibility with previous releases (hdlc_xxxx API)
- * Easy to use Light protcol (tiny_light_xxxx API, see examples)
- * Full-duplex protocol (tiny_fd_xxxx true RFC 1662 implementation, supports confirmation, frames retransmissions)
- * Error detection
-   * Simple 8-bit checksum (sum of bytes)
-   * FCS16 (CCITT-16)
-   * FCS32 (CCITT-32)
+ * Easy to use Light protcol - analogue of a SLIP protcol (tiny_light_xxxx API, see examples)
+ * Full-duplex protocol (tiny_fd_xxxx true RFC 1662 implementation, supports confirmation, frames retransmissions: ABM and NRM modes )
+ * one to one and one to many modes
  * Frames of maximum 32K or 2G size (payload limit depends on platfrom).
  * Low SRAM consumption (starts at 60 bytes).
  * Low Flash consumption (starts at 1.2KiB, features can be disabled and enabled at compilation time)
  * No dynamic memory allocation!
- * Special serial loopback tool for debug purposes and performance testing
+ * Special serial loopback tool for debug purposes and performance testing (ABM mode only)
 
 ## Supported platforms
 
@@ -233,7 +229,9 @@ Doxygen documentation can be found at [Codedocs xyz site](https://codedocs.xyz/l
 If you found any problem or have any idea, please, report to Issues section.
 If you find the library useful and want to [support future development](https://www.paypal.me/lexus2k), you may contact me.
 
-BTC: ![BTC](.travis/btc_segwit.png) ETH: ![ETH](.travis/eth.png)<br>
+| Paypal | Bitcoin | Etherium |
+| ------ | ------- | -------- |
+| Not available  |  <center>![BTC](.travis/btc_segwit.png)<br/>[3CtUY6Ag2zsvm1JyqeeKeK8kjdG7Tnjr5W](bitcoin:3CtUY6Ag2zsvm1JyqeeKeK8kjdG7Tnjr5W)</center> | <center>![ETH](.travis/eth.png)<br/>[0x20608A71470Bc84a3232621819f578Fb9C02A460](etherium:0x20608A71470Bc84a3232621819f578Fb9C02A460)</center> |
 
 ## License
 

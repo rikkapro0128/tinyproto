@@ -35,7 +35,7 @@ public:
 
     ~IFdLinkLayer();
 
-    bool begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata) override;
+    bool begin(on_frame_read_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata) override;
 
     void end() override;
 

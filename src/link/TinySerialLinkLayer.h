@@ -40,7 +40,7 @@ public:
     {
     }
 
-    bool begin(on_frame_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata) override
+    bool begin(on_frame_read_cb_t onReadCb, on_frame_send_cb_t onSendCb, void *udata) override
     {
         bool result = BASE::begin(onReadCb, onSendCb, udata);
         m_serial.setTimeout( this->getTimeout() );
