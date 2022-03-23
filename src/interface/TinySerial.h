@@ -34,9 +34,9 @@ class Serial
 {
 public:
 #if defined(ARDUINO)
-    Serial(HardwareSerial &dev);
+    explicit Serial(HardwareSerial &dev);
 #endif
-    Serial(const char *dev);
+    explicit Serial(const char *dev);
 
     void setTimeout(uint32_t timeoutMs);
 

@@ -230,9 +230,10 @@ extern "C"
      * @param handle handle of full-duplex protocol
      * @param data pointer to buffer to fill with tx data
      * @param len maximum size of specified buffer
+     * @param timeout in milliseconds to wait for the data to be ready for sending
      * @return number of bytes written to specified buffer
      */
-    extern int tiny_fd_get_tx_data(tiny_fd_handle_t handle, void *data, int len);
+    extern int tiny_fd_get_tx_data(tiny_fd_handle_t handle, void *data, int len, uint32_t timeout);
 
     /**
      * @brief sends tx data to the communication channel via user callback `write_func()`.

@@ -554,7 +554,7 @@ static void on_frame_read(void *user_data, uint8_t *data, int len)
     tiny_fd_handle_t handle = (tiny_fd_handle_t)user_data;
     if ( len < 2 )
     {
-        LOG(TINY_LOG_WRN, "FD: received too small frame\n");
+        LOG(TINY_LOG_WRN, "%s: received too small frame\n", "FD");
         return;
     }
     uint8_t peer = __address_field_to_peer( handle, ((uint8_t *)data)[0] );
@@ -661,7 +661,7 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     *handle = NULL;
     if ( (0 == init->on_read_cb) || (0 == init->buffer) || (0 == init->buffer_size) )
     {
-        LOG(TINY_LOG_CRIT, "Invalid input data: null pointers\n");
+        LOG(TINY_LOG_CRIT, "Invalid input data: null pointers%s", "\n");
         return TINY_ERR_INVALID_DATA;
     }
     if ( init->mtu == 0 )
@@ -670,7 +670,7 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
         init->mtu = (init->buffer_size - size) / (init->window_frames + 1);
         if ( init->mtu < 1 )
         {
-            LOG(TINY_LOG_CRIT, "Calculated mtu size is zero, no payload transfer is available\n");
+            LOG(TINY_LOG_CRIT, "Calculated mtu size is zero, no payload transfer is available%s", "\n");
             return TINY_ERR_OUT_OF_MEMORY;
         }
     }
@@ -682,12 +682,12 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     }
     if ( init->window_frames < 2 )
     {
-        LOG(TINY_LOG_CRIT, "HDLC doesn't support less than 2-frames queue\n");
+        LOG(TINY_LOG_CRIT, "HDLC doesn't support less than 2-frames queue%s", "\n");
         return TINY_ERR_INVALID_DATA;
     }
     if ( !init->retry_timeout && !init->send_timeout )
     {
-        LOG(TINY_LOG_CRIT, "HDLC uses timeouts for ACK, at least retry_timeout, or send_timeout must be specified\n");
+        LOG(TINY_LOG_CRIT, "HDLC uses timeouts for ACK, at least retry_timeout, or send_timeout must be specified%s", "\n");
         return TINY_ERR_INVALID_DATA;
     }
     memset(init->buffer, 0, init->buffer_size);
@@ -757,7 +757,7 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     int result = hdlc_ll_init(&protocol->_hdlc, &_init);
     if ( result != TINY_SUCCESS )
     {
-        LOG(TINY_LOG_CRIT, "HDLC low level initialization failed");
+        LOG(TINY_LOG_CRIT, "HDLC low level initialization failed%s", "\n");
         return result;
     }
 
@@ -1032,7 +1032,7 @@ static void tiny_fd_disconnected_check_idle_timeout(tiny_fd_handle_t handle, uin
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tiny_fd_get_tx_data(tiny_fd_handle_t handle, void *data, int len)
+int tiny_fd_get_tx_data(tiny_fd_handle_t handle, void *data, int len, uint32_t timeout)
 {
     bool repeat = true;
     int result = 0;
@@ -1063,9 +1063,9 @@ int tiny_fd_get_tx_data(tiny_fd_handle_t handle, void *data, int len)
             }
             // Since no send operation is in progress, check if we have something to send
             // Check if the station has marker to send FIRST (That means, we are allowed to send anything still)
-            if ( tiny_events_wait(&handle->events, FD_EVENT_HAS_MARKER, EVENT_BITS_LEAVE, 0 ) )
+            if ( tiny_events_wait(&handle->events, FD_EVENT_HAS_MARKER, EVENT_BITS_LEAVE, timeout ) )
             {
-                if ( handle->mode == TINY_FD_MODE_NRM || tiny_events_wait(&handle->events, FD_EVENT_TX_DATA_AVAILABLE, EVENT_BITS_CLEAR, 0) )
+                if ( tiny_events_wait(&handle->events, FD_EVENT_TX_DATA_AVAILABLE, EVENT_BITS_CLEAR, timeout) || handle->mode == TINY_FD_MODE_NRM )
                 {
                     int frame_len = 0;
                     uint8_t *frame_data = tiny_fd_get_next_frame_to_send(handle, &frame_len, peer);
@@ -1126,7 +1126,7 @@ int tiny_fd_get_tx_data(tiny_fd_handle_t handle, void *data, int len)
 int tiny_fd_run_tx(tiny_fd_handle_t handle, write_block_cb_t write_func)
 {
     uint8_t buf[4];
-    int len = tiny_fd_get_tx_data(handle, buf, sizeof(buf));
+    int len = tiny_fd_get_tx_data(handle, buf, sizeof(buf), 1);
     if ( len <= 0 )
     {
         return len;

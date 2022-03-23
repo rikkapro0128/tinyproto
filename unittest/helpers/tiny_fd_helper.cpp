@@ -141,7 +141,7 @@ int TinyHelperFd::send(int count, const std::string &msg)
 int TinyHelperFd::run_tx()
 {
     uint8_t buf[16];
-    int len = tiny_fd_get_tx_data(m_handle, buf, sizeof(buf));
+    int len = tiny_fd_get_tx_data(m_handle, buf, sizeof(buf), 0);
     uint8_t *ptr = buf;
     while ( len > 0 )
     {

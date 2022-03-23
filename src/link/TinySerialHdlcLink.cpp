@@ -37,12 +37,12 @@ bool SerialHdlcLink::begin(on_frame_read_cb_t onReadCb, on_frame_send_cb_t onSen
     int size = hdlc_ll_get_buf_size_ex(getMtu(), getCrc(), 3);
     m_buffer = reinterpret_cast<uint8_t *>(malloc(size));
     setBuffer(m_buffer, size);
-    return ISerialLinkLayer<IHdlcLinkLayer,128>::begin(onReadCb, onSendCb, udata);
+    return ISerialLinkLayer<IHdlcLinkLayer,32>::begin(onReadCb, onSendCb, udata);
 }
 
 void SerialHdlcLink::end()
 {
-    ISerialLinkLayer<IHdlcLinkLayer,128>::end();
+    ISerialLinkLayer<IHdlcLinkLayer,32>::end();
     if ( m_buffer )
     {
         free(m_buffer);

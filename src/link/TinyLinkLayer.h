@@ -34,6 +34,8 @@ namespace tinyproto
 class ILinkLayer
 {
 public:
+     ILinkLayer() {}
+
     /**
      * The method initializes the link layer protocol, and connects custom callbacks
      * to link layer. Once the new frame is received, onReadCb will be called, once frame is sent onSendCb
@@ -124,7 +126,7 @@ public:
 
 private:
     int m_mtu = 16384;
-    uint32_t m_timeout;
+    uint32_t m_timeout = 0;
 };
 
 } // namespace tinyproto

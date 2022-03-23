@@ -68,7 +68,7 @@ protected:
 
 private:
     hdlc_ll_handle_t m_handle = nullptr;
-    void *m_udata;
+    void *m_udata = nullptr;
     on_frame_read_cb_t m_onReadCb = nullptr;
     on_frame_send_cb_t m_onSendCb = nullptr;
     tiny_mutex_t  m_sendMutex{};
@@ -78,6 +78,7 @@ private:
     uint8_t *m_buffer = nullptr;
     int m_bufferSize = 0;
     hdlc_crc_t m_crc = HDLC_CRC_8;
+    bool m_flushFlag = false;
 
     static void onSend(void *udata, const uint8_t *data, int len);
     static void onRead(void *udata, uint8_t *data, int len);

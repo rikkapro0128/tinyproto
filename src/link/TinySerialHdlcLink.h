@@ -59,11 +59,11 @@ public:
 
 #endif
 
-class SerialHdlcLink: public ISerialLinkLayer<IHdlcLinkLayer, 128>
+class SerialHdlcLink: public ISerialLinkLayer<IHdlcLinkLayer, 32>
 {
 public:
     SerialHdlcLink(char *dev)
-        : ISerialLinkLayer<IHdlcLinkLayer, 128>(dev, nullptr, 0)
+        : ISerialLinkLayer<IHdlcLinkLayer, 32>(dev, nullptr, 0)
     {
     }
 

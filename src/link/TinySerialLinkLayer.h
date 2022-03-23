@@ -56,14 +56,25 @@ public:
     void runRx() override
     {
         uint8_t buf[BSIZE];
-        int len = m_serial.readBytes(buf, BSIZE);
-        BASE::parseData( buf, len);
+        uint8_t *p = buf;
+
+        int len = m_serial.readBytes(p, BSIZE);
+        while ( len > 0 )
+        {
+            int temp = BASE::parseData( p, len);
+            if ( temp < 0 )
+            {
+                break;
+            }
+            len -= temp;
+            p += temp;
+        }
     }
 
     void runTx() override
     {
         uint8_t buf[BSIZE];
-        int len = BASE::getData( buf, BSIZE);
+        int len = BASE::getData( buf, BSIZE );
         uint8_t *ptr = buf;
         while ( len > 0 )
         {

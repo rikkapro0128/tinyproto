@@ -112,32 +112,46 @@ bool Proto::send(const IPacket &packet, uint32_t timeout)
     return result;
 }
 
+/*void Proto::printCount(const char * name, IPacket *queue)
+{
+    int counter = 0;
+    IPacket *p = queue;
+    while ( p )
+    {
+        p = p->m_next;
+        counter++;
+    }
+    printf("[%p] %s counter %i \n", this, name, counter);
+}*/
+
+
 IPacket *Proto::read(uint32_t timeout)
 {
     IPacket *p = nullptr;
     uint32_t startTs = tiny_millis();
     for ( ;; )
     {
-        uint8_t bits = tiny_events_wait(&m_events, PROTO_RX_MESSAGE, EVENT_BITS_CLEAR, m_multithread ? timeout : 0);
-        if ( bits )
+        tiny_events_wait(&m_events, PROTO_RX_MESSAGE, EVENT_BITS_CLEAR, m_multithread ? timeout : 0);
+        tiny_mutex_lock( &m_mutex );
+        if ( m_queue != nullptr )
         {
-            tiny_mutex_lock( &m_mutex );
+            p = m_queue;
+            m_queue = m_queue->m_next;
             if ( m_queue != nullptr )
             {
-                p = m_queue;
-                m_queue = m_queue->m_next;
-                if ( m_queue )
-                {
-                    m_queue->m_prev = nullptr;
-                }
-                else
-                {
-                    m_last = nullptr;
-                }
+                m_queue->m_prev = nullptr;
+                tiny_events_set( &m_events, PROTO_RX_MESSAGE );
             }
+            else
+            {
+                m_last = nullptr;
+            }
+            //printCount( "read Pool", m_pool );
+            //printCount( "read Queue", m_queue );
             tiny_mutex_unlock( &m_mutex );
             break;
         }
+        tiny_mutex_unlock( &m_mutex );
         // Always run Tx/Rx loop before checking timings, otherwise messages will be never received
         if ( !m_multithread )
         {
@@ -190,6 +204,8 @@ void Proto::onRead(uint8_t addr, uint8_t *buf, int len)
     if ( p == nullptr )
     {
         // TODO: Lost frame
+        m_lostRxFrames++;
+        // printf("Lost -------------------- \n");
     }
     else
     {
@@ -224,9 +240,11 @@ void Proto::onRead(uint8_t addr, uint8_t *buf, int len)
             memcpy( p->m_buf, buf, p->m_len );
         }
         p->m_p = 0;
+        tiny_events_set( &m_events, PROTO_RX_MESSAGE );
     }
+    //printCount( "new Pool", m_pool );
+    //printCount( "new Queue", m_queue );
     tiny_mutex_unlock( &m_mutex );
-    tiny_events_set( &m_events, PROTO_RX_MESSAGE );
 }
 
 void Proto::onSend(uint8_t addr, const uint8_t *buf, int len)
@@ -250,7 +268,10 @@ void Proto::runTx()
 {
     if (m_multithread)
     {
-        tiny_sleep( m_txDelay );
+        if (m_txDelay)
+        {
+            tiny_sleep( m_txDelay );
+        }
         while ( !m_terminate )
         {
             getLink().runTx();
@@ -273,6 +294,13 @@ void Proto::setTxDelay( uint32_t delay )
 {
     m_txDelay = delay;
 }
+
+int Proto::getLostRxFrames()
+{
+    int val = m_lostRxFrames;
+    m_lostRxFrames = 0;
+    return val;
+}
 #endif
 
 void Proto::release(IPacket *message)
@@ -285,14 +313,13 @@ void Proto::addRxPool(IPacket &message)
     tiny_mutex_lock( &m_mutex );
     message.m_next = m_pool;
     message.m_prev = nullptr;
-    if ( m_pool == nullptr )
-    {
-        m_pool = &message;
-    }
-    else
+    if ( m_pool != nullptr )
     {
         m_pool->m_prev = &message;
     }
+    m_pool = &message;
+    //printCount( "release Pool", m_pool );
+    //printCount( "release Queue", m_queue );
     tiny_mutex_unlock( &m_mutex );
 }
 

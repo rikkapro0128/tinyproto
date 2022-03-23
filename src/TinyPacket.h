@@ -336,7 +336,7 @@ public:
     {
     }
 
-    HeapPacket( const IPacket &src )
+    explicit HeapPacket( const IPacket &src )
         : IPacket((char *)(new uint8_t[src.size()]), src.size())
     {
         memcpy(data(), src.data(), src.size());

@@ -493,11 +493,11 @@ static int hdlc_ll_read_end(hdlc_ll_handle_t handle, const uint8_t *data, int le
         if ( TINY_LOG_DEB < g_tiny_log_level )
             for ( int i = 0; i < len; i++ )
                 fprintf(stderr, " %c ", (char)(handle->rx.frame_buf)[i]);
-        LOG(TINY_LOG_DEB, "\n");
+        LOG(TINY_LOG_DEB, "[%s]", "\n");
         if ( TINY_LOG_DEB < g_tiny_log_level )
             for ( int i = 0; i < len; i++ )
                 fprintf(stderr, " %02X ", (handle->rx.frame_buf)[i]);
-        LOG(TINY_LOG_DEB, "\n-----------\n");
+        LOG(TINY_LOG_DEB, "\n%s\n","------------");
 #endif
         return TINY_ERR_WRONG_CRC;
     }

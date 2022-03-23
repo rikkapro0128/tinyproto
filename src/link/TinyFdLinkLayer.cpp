@@ -38,6 +38,7 @@ bool IFdLinkLayer::begin(on_frame_read_cb_t onReadCb, on_frame_send_cb_t onSendC
     init.pdata = udata;
     init.on_read_cb = onReadCb;
     init.on_send_cb = onSendCb;
+    // TODO: init.on_connect_event_cb = onConnectEventInternal;
     init.buffer = m_buffer;
     init.buffer_size = m_bufferSize;
     init.window_frames = m_txWindow;
@@ -46,6 +47,7 @@ bool IFdLinkLayer::begin(on_frame_read_cb_t onReadCb, on_frame_send_cb_t onSendC
     init.retries = 2;
     init.crc_type = getCrc();
     init.mtu = getMtu();
+    init.mode = TINY_FD_MODE_ABM;
     int result = tiny_fd_init(&m_handle, &init);
     return result == TINY_SUCCESS;
 }
@@ -67,12 +69,13 @@ void IFdLinkLayer::flushTx()
 
 int IFdLinkLayer::parseData(const uint8_t *data, int size)
 {
-    return tiny_fd_on_rx_data(m_handle, data, size);
+    int code = tiny_fd_on_rx_data(m_handle, data, size);
+    return code ==  TINY_SUCCESS ? size : code;
 }
 
 int IFdLinkLayer::getData(uint8_t *data, int size)
 {
-    return tiny_fd_get_tx_data(m_handle, data, size);
+    return tiny_fd_get_tx_data(m_handle, data, size, getTimeout());
 }
 
 /////////////////////////////////////////////////////////////////////////////

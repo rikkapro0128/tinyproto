@@ -110,13 +110,13 @@ int IFd::run_rx(read_block_cb_t read_func)
 
 int IFd::run_tx(void *data, int max_size)
 {
-    return tiny_fd_get_tx_data(m_handle, data, max_size);
+    return tiny_fd_get_tx_data(m_handle, data, max_size, 0);
 }
 
 int IFd::run_tx(write_block_cb_t write_func)
 {
     uint8_t buf[4];
-    int len = tiny_fd_get_tx_data(m_handle, buf, sizeof(buf));
+    int len = tiny_fd_get_tx_data(m_handle, buf, sizeof(buf), 0);
     if ( len <= 0 )
     {
         return len;

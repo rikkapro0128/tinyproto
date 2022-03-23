@@ -85,6 +85,8 @@ public:
 
 #if CONFIG_TINYHAL_THREAD_SUPPORT == 1
     void setTxDelay( uint32_t delay );
+
+    int getLostRxFrames();
 #endif
 
 private:
@@ -99,6 +101,7 @@ private:
     std::thread *m_sendThread = nullptr;
     std::thread *m_readThread = nullptr;
     uint32_t m_txDelay = 0;
+    int m_lostRxFrames = 0;
 #endif
 
     tiny_events_t m_events{};
@@ -118,6 +121,8 @@ private:
 
     void runRx();
 #endif
+
+//    void printCount(const char *, IPacket *queue);
 };
 
 /////// Helper classes, platform specific

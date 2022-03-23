@@ -197,14 +197,14 @@ static PyObject *Fd_tx(Fd *self, PyObject *args)
     if ( buffer.buf == NULL )
     {
         void *data = PyObject_Malloc(self->mtu);
-        result = tiny_fd_get_tx_data(self->handle, data, self->mtu);
+        result = tiny_fd_get_tx_data(self->handle, data, self->mtu, 0);
         PyObject *to_send = PyByteArray_FromStringAndSize((const char *)data, result);
         PyObject_Free(data);
         return to_send;
     }
     else
     {
-        result = tiny_fd_get_tx_data(self->handle, buffer.buf, buffer.len);
+        result = tiny_fd_get_tx_data(self->handle, buffer.buf, buffer.len, 0);
         PyBuffer_Release(&buffer);
         return PyLong_FromLong((long)result);
     }
