@@ -65,6 +65,11 @@ extern "C"
         if ( lvl < g_tiny_log_level )                                                                                  \
             fprintf(stderr, "%08" PRIu32 " ms: " fmt, tiny_millis(), ##__VA_ARGS__);                                   \
     }
+#define TINY_LOG0(lvl, fmt)                                                                                            \
+    {                                                                                                                  \
+        if ( lvl < g_tiny_log_level )                                                                                  \
+            fprintf(stderr, "%08" PRIu32 " ms: " fmt, tiny_millis());                                                  \
+    }
 #else
 #define TINY_LOG(...)
 #endif

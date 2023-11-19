@@ -227,6 +227,7 @@ static int run_fd(tiny_serial_handle_t port)
             {
                 fprintf(stderr, "Failed to send packet\n");
             }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
         else
         {

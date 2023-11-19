@@ -39,7 +39,7 @@ static bool peek_next;
 static void send_message(const char *message)
 {
     tiny_mutex_lock(&queue_mutex);
-    char *msg = _strdup(message);
+    char *msg = strdup(message);
     queue.push(msg);
     tiny_mutex_unlock(&queue_mutex);
 }

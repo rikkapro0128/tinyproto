@@ -161,9 +161,13 @@ uint16_t tiny_chksum(uint16_t sum, const uint8_t* data, int data_length)
 
 int get_crc_field_size(hdlc_crc_t crc_type)
 {
-    if ( crc_type == 0xFF )
+    if ( crc_type == HDLC_CRC_OFF )
     {
         return 0;
+    }
+    if ( crc_type == HDLC_CRC_DEFAULT )
+    {
+        crc_type = HDLC_CRC_32;
     }
     return (int)crc_type / 8;
 }
