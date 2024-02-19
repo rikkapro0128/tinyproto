@@ -84,12 +84,12 @@ void IFd::end()
 
 int IFd::write(const char *buf, int size)
 {
-    return tiny_fd_send_packet(m_handle, buf, size);
+    return tiny_fd_send_packet(m_handle, buf, size, m_sendTimeout);
 }
 
 int IFd::write(const IPacket &pkt)
 {
-    return tiny_fd_send_packet(m_handle, pkt.m_buf, pkt.m_len);
+    return tiny_fd_send_packet(m_handle, pkt.m_buf, pkt.m_len, m_sendTimeout);
 }
 
 int IFd::run_rx(const void *data, int len)
@@ -110,13 +110,13 @@ int IFd::run_rx(read_block_cb_t read_func)
 
 int IFd::run_tx(void *data, int max_size)
 {
-    return tiny_fd_get_tx_data(m_handle, data, max_size);
+    return tiny_fd_get_tx_data(m_handle, data, max_size, 0);
 }
 
 int IFd::run_tx(write_block_cb_t write_func)
 {
     uint8_t buf[4];
-    int len = tiny_fd_get_tx_data(m_handle, buf, sizeof(buf));
+    int len = tiny_fd_get_tx_data(m_handle, buf, sizeof(buf), 0);
     if ( len <= 0 )
     {
         return len;

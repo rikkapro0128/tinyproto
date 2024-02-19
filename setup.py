@@ -1,5 +1,5 @@
 """
-    Copyright 2021-2022 (C) Alexey Dynda
+    Copyright 2021-2022 (,2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -39,7 +39,7 @@ else:
     libs = []
 
 tinyproto_module = Extension(
-    'tinyproto_',
+    'tinyproto',
     sources=source_files,
     include_dirs=['./src','./python'],
     define_macros=[("MYDEF", None), ("TINY_FD_DEBUG", 0), ("TINY_LOG_LEVEL_DEFAULT", 0)],
@@ -59,8 +59,7 @@ setup(
     version='1.0.0',
     description='tinyproto module wrapper',
     package_dir = { "tinyproto": "./python" },
-    packages = ['tinyproto', 'tinyproto.wrappers', 'tinyproto.options'],
-    # py_modules = ['tinyproto.options'],
+    packages = ['tinyproto.wrappers', 'tinyproto.helpers'],
     ext_modules=[tinyproto_module],
 )
 

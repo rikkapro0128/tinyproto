@@ -95,10 +95,10 @@ extern "C"
         void *pdata;
 
         /// callback function to process incoming frames. Callback is called from tiny_fd_run_rx() context.
-        on_frame_cb_t on_frame_cb;
+        on_frame_read_cb_t on_read_cb;
 
         /// Callback to get notification of sent frames. Callback is called from tiny_fd_run_tx() context.
-        on_frame_cb_t on_sent_cb;
+        on_frame_send_cb_t on_send_cb;
 
         /**
          * buffer to store data during full-duplex protocol operating.
@@ -174,12 +174,6 @@ extern "C"
          */
         uint8_t mode;
 
-        /// callback function to process incoming frames. Callback is called from tiny_fd_run_rx() context.
-        on_frame_read_cb_t on_read_cb;
-
-        /// Callback to get notification of sent frames. Callback is called from tiny_fd_run_tx() context.
-        on_frame_send_cb_t on_send_cb;
-
     } tiny_fd_init_t;
 
     /**
@@ -236,9 +230,10 @@ extern "C"
      * @param handle handle of full-duplex protocol
      * @param data pointer to buffer to fill with tx data
      * @param len maximum size of specified buffer
+     * @param timeout in milliseconds to wait for the data to be ready for sending
      * @return number of bytes written to specified buffer
      */
-    extern int tiny_fd_get_tx_data(tiny_fd_handle_t handle, void *data, int len);
+    extern int tiny_fd_get_tx_data(tiny_fd_handle_t handle, void *data, int len, uint32_t timeout);
 
     /**
      * @brief sends tx data to the communication channel via user callback `write_func()`.
@@ -276,7 +271,7 @@ extern "C"
      * Reads rx data from the communication channel via user callback `read_func()`.
      * Internally this function has 4-byte buffer, and tries to read 4 bytes from the channel.
      * Then received bytes are processed by the protocol. If FD protocol detects new incoming
-     * message then it calls on_sent_callback.
+     * message then it calls on_send_callback.
      * If no data available in the channel, the function returns immediately after read_func() callback
      * returns control.
      *
@@ -305,6 +300,7 @@ extern "C"
      * @param address  address of remote peer. For primary device, please use TINY_FD_PRIMARY_ADDR
      * @param buf      data to send
      * @param len      length of data to send
+     * @param timeout  timeout in milliseconds to wait until data are placed to outgoing queue
      *
      * @return Success result or error code:
      *         * TINY_SUCCESS          if user data are put to internal queue.
@@ -313,7 +309,7 @@ extern "C"
      *         * TINY_ERR_UNKNOWN_PEER if peer is not known to the system.
      *         * TINY_ERR_DATA_TOO_LARGE if user data are too big to fit in tx buffer.
      */
-    extern int tiny_fd_send_packet_to(tiny_fd_handle_t handle, uint8_t address, const void *buf, int len);
+    extern int tiny_fd_send_packet_to(tiny_fd_handle_t handle, uint8_t address, const void *buf, int len, uint32_t timeout);
 
     /**
      * Returns minimum required buffer size for specified parameters.
@@ -330,10 +326,11 @@ extern "C"
      *
      * @param peers_count maximum number of peers supported by the primary. Use 0 or 1 for secondary devices
      * @param mtu size of desired user payload in bytes.
-     * @param window maximum tx queue size of I-frames.
+     * @param tx_window maximum tx queue size of I-frames.
      * @param crc_type crc type to be used with FD protocol
+     * @param rx_window number of RX ring buffer in frames
      */
-    extern int tiny_fd_buffer_size_by_mtu_ex(uint8_t peers_count, int mtu, int window, hdlc_crc_t crc_type);
+    extern int tiny_fd_buffer_size_by_mtu_ex(uint8_t peers_count, int mtu, int tx_window, hdlc_crc_t crc_type, int rx_window);
 
     /**
      * @brief returns max packet size in bytes.
@@ -360,10 +357,11 @@ extern "C"
      * @param address  address of remote peer. For primary device, please use TINY_FD_PRIMARY_ADDR
      * @param buf      data to send
      * @param len      length of data to send
+     * @param timeout  timeout in milliseconds, will be used for each block sending
      *
      * @return Number of bytes sent
      */
-    extern int tiny_fd_send_to(tiny_fd_handle_t handle, uint8_t address, const void *buf, int len);
+    extern int tiny_fd_send_to(tiny_fd_handle_t handle, uint8_t address, const void *buf, int len, uint32_t timeout);
 
     /**
      * Sets keep alive timeout in milliseconds. This timeout is used to send special RR
@@ -396,10 +394,11 @@ extern "C"
      * @param handle   tiny_fd_handle_t handle
      * @param buf      data to send
      * @param len      length of data to send
+     * @param timeout  timeout in milliseconds, will be used for each block sending
      *
      * @return Number of bytes sent
      */
-    extern int tiny_fd_send(tiny_fd_handle_t handle, const void *buf, int len);
+    extern int tiny_fd_send(tiny_fd_handle_t handle, const void *buf, int len, uint32_t timeout);
 
     /**
      * Sends packet to primary station. For details, please, refer to tiny_fd_send_packet_to().
@@ -407,10 +406,11 @@ extern "C"
      * @param handle   tiny_fd_handle_t handle
      * @param buf      data to send
      * @param len      length of data to send
+     * @param timeout  timeout in milliseconds to wait until data are placed to outgoing queue
      *
      * @return Success result or error code
      */
-    extern int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *buf, int len);
+    extern int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *buf, int len, uint32_t timeout);
 
     /**
      * @}

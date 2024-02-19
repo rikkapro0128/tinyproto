@@ -9,6 +9,8 @@ COMPONENT_SRCDIRS := ./src \
                      ./src/proto/fd \
                      ./src/proto/light \
                      ./src/proto/crc \
+                     ./src/link \
+                     ./src/interface \
 
 CPPFLAGS += \
             -DTINY_LOG_LEVEL_DEFAULT=0 \

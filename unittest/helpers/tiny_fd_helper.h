@@ -41,11 +41,11 @@ class TinyHelperFd: public IBaseHelper<TinyHelperFd>
 public:
     // default constructor for ABM mode
     TinyHelperFd(FakeEndpoint *endpoint, int rxBufferSize,
-                 const std::function<void(uint8_t *, int)> &onRxFrameCb = nullptr, int window_frames = 7,
+                 const std::function<void(uint8_t address, uint8_t *, int)> &onRxFrameCb = nullptr, int window_frames = 7,
                  int timeout = -1);
     // default constructor for any FD mode
     TinyHelperFd(FakeEndpoint *endpoint, int rxBufferSize, uint8_t mode,
-                 const std::function<void(uint8_t *, int)> &onRxFrameCb = nullptr);
+                 const std::function<void(uint8_t address, uint8_t *, int)> &onRxFrameCb = nullptr);
     virtual ~TinyHelperFd();
 
     // Must be called if non-ABM constructor was used
@@ -85,7 +85,7 @@ private:
     int m_rx_count = 0;
     int m_tx_count = 0;
     std::thread *m_message_sender = nullptr;
-    std::function<void(uint8_t *, int)> m_onRxFrameCb;
+    std::function<void(uint8_t address, uint8_t *, int)> m_onRxFrameCb;
     std::function<void(uint8_t, bool)> m_onConnectCb = nullptr;
     bool m_stop_sender = false;
     uint8_t m_mode = TINY_FD_MODE_ABM;
@@ -95,8 +95,8 @@ private:
     int m_window;
     int m_timeout;
 
-    static void onRxFrame(void *handle, uint8_t *buf, int len);
-    static void onTxFrame(void *handle, uint8_t *buf, int len);
+    static void onRxFrame(void *handle, uint8_t address, uint8_t *buf, int len);
+    static void onTxFrame(void *handle, uint8_t address, const uint8_t *buf, int len);
     static void onConnect(void *handle, uint8_t addr, bool connected);
     static void MessageSender(TinyHelperFd *helper, int count, std::string message);
 };

@@ -1,5 +1,5 @@
 /*
-    Copyright 2019-2020,2022 (C) Alexey Dynda
+    Copyright 2019-2020,2022 (,2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -73,10 +73,10 @@ private:
     tiny_mutex_t m_read_mutex;
     bool m_stop_sender = false;
     std::thread *m_sender_thread = nullptr;
-    std::atomic<int> m_rx_count{ 0 };
-    std::atomic<int> m_tx_count{ 0 };
+    std::atomic<int> m_rx_count{0};
+    std::atomic<int> m_tx_count{0};
     uint8_t *m_user_rx_buf = nullptr;
-    int  m_user_rx_buf_size = 0;
+    int m_user_rx_buf_size = 0;
     bool m_tx_from_main = false;
 
     static int onRxFrame(void *handle, void *buf, int len);

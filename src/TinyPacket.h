@@ -62,12 +62,21 @@ public:
      * @param size - size of the buffer to hold packet data
      * @note passed buffer must exist all lifecycle of the Packet object.
      */
-    IPacket(char *buf, size_t size)
+    IPacket(char *buf, int size)
     {
-        m_len = 0;
         m_size = static_cast<int>(size);
         m_buf = (uint8_t *)buf;
-        m_p = 0;
+    }
+
+    IPacket(const IPacket &packet)
+    {
+        m_len = packet.m_len;
+        m_size = packet.m_size;
+        m_buf = packet.m_buf;
+    }
+
+    IPacket()
+    {
     }
 
     /**
@@ -139,8 +148,11 @@ public:
      */
     inline void put(const char *str)
     {
-        strncpy((char *)&m_buf[m_len], str, m_size - m_len);
-        m_len += static_cast<int>(strlen(str));
+        int room = m_size - m_len - 1;
+        if ( !room ) return;
+        int strSize = static_cast<int>(strlen(str));
+        strncpy((char *)&m_buf[m_len], str, room);
+        m_len += strSize < room ? strSize : room;
         m_buf[m_len++] = 0;
     }
 
@@ -215,7 +227,7 @@ public:
      * Returns size of payload data in the received packet.
      * @return size of payload data.
      */
-    inline size_t size() const
+    inline int size() const
     {
         return m_len;
     }
@@ -224,7 +236,7 @@ public:
      * Returns maximum size of packet buffer.
      * @return max size of packet buffer.
      */
-    inline size_t maxSize() const
+    inline int maxSize() const
     {
         return m_size;
     }
@@ -233,7 +245,7 @@ public:
      * Returns pointer to payload data in the received packet.
      * @return pointer to payload data.
      */
-    inline char *data()
+    inline char *data() const
     {
         return (char *)m_buf;
     }
@@ -250,27 +262,50 @@ public:
     /**
      * You may refer to Packet payload data directly by using operator []
      */
-    uint8_t &operator[](size_t idx)
+    uint8_t &operator[](int idx)
     {
         return m_buf[idx];
+    }
+
+    /**
+     * Assign operator doesn't copy the data from the source packet, but
+     * it copies only pointers
+     */
+    IPacket &operator=(const IPacket &source)
+    {
+        m_size = source.m_size;
+        m_buf = source.m_buf;
+        return *this;
+    }
+
+    /**
+     * Allocates space inside the packet buffer, the next data will be written after allocated block.
+     * Allocate operation doesn't changes the data inside the buffer
+     */
+    void allocate(int bytes)
+    {
+        m_len += bytes;
     }
 
 private:
     friend class Hdlc;
     friend class IFd;
     friend class Light;
+    friend class Proto;
 
-    uint8_t *m_buf;
-    int m_size;
-    int m_len;
-    int m_p;
+    uint8_t *m_buf = nullptr;
+    IPacket *m_next = nullptr; // For organizing ring buffers
+    IPacket *m_prev = nullptr; // For organizing ring buffers
+    int m_size = 0; // maximum space available for payload data
+    int m_len = 0;  // length of payload data
+    int m_p = 0;    // current pointer
 };
 
 /**
  * Template  class to create packet with static allocation of buffer
  * Use this class for microcontrollers with few resources.
  */
-template <size_t S> class StaticPacket: public IPacket
+template <int S> class StaticPacket: public IPacket
 {
 public:
     /**
@@ -289,19 +324,25 @@ private:
  * Class which allocated buffer for packet dynamically.
  * Use this class only on powerful microcontrollers.
  */
-class Packet: public IPacket
+class HeapPacket: public IPacket
 {
 public:
     /**
      * Creates packet with dynamically allocated buffer.
      * @param size number of bytes to allocate for the packet buffer.
      */
-    explicit Packet(int size)
+    explicit HeapPacket(int size)
         : IPacket((char *)(new uint8_t[size]), size)
     {
     }
 
-    ~Packet()
+    explicit HeapPacket( const IPacket &src )
+        : IPacket((char *)(new uint8_t[src.size()]), src.size())
+    {
+        memcpy(data(), src.data(), src.size());
+    }
+
+    ~HeapPacket()
     {
         delete[](uint8_t *) data();
     }

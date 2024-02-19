@@ -20,8 +20,8 @@ create_terminals
 ./bld/tiny_loopback -p /tmp/sideB -t fd -r -w 7 &
 sleep 0.5
 # Run tests on sideA for 15 seconds
-# Use window 4 for now, need to solve overload connection issues
-./bld/tiny_loopback -p /tmp/sideA -t fd -g -r -w 4
+# We don't want to limit loopback side, so test can miss some frames
+./bld/tiny_loopback -p /tmp/sideA -t fd -g -r -w 7
 if [ $? -ne 0 ]; then
     close_terminals_and_exit 1
 fi

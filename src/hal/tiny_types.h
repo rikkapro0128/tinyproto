@@ -65,6 +65,13 @@ extern "C"
 #include <stdbool.h>
 
 
+#ifndef CONFIG_TINYHAL_THREAD_SUPPORT
+/**
+ * By default disable thread support
+ */
+#define CONFIG_TINYHAL_THREAD_SUPPORT 0
+#endif
+
 
 #if defined(_MSC_VER)
 /// This macro is used internally for aligning the structures
@@ -126,8 +133,10 @@ extern "C"
 #define TINY_ERR_AGAIN (-7)
 /// Invalid crc field of incoming frame
 #define TINY_ERR_WRONG_CRC (-8)
+/// Out of memory during operation
+#define TINY_ERR_OUT_OF_MEMORY (-9)
 /// Unknown remote peer
-#define TINY_ERR_UNKNOWN_PEER (-9)
+#define TINY_ERR_UNKNOWN_PEER (-10)
 
 /** @} */
 
@@ -170,15 +179,22 @@ extern "C"
     typedef int (*read_block_cb_t)(void *pdata, void *buffer, int size);
 
     /**
-     * on_frame_cb_t is a callback function, which is called every time new frame is received, or sent.
-     * refer to tiny_set_callbacks
-     * @param handle - handle of Tiny.
-     * @param pdata  - data received from the channel.
-     * @param size   - size of data received.
+     * on_frame_cb_t is a callback function, which is called every time new frame is received.
+     * @param udata user data
+     * @param pdata  pointer to data received from the channel.
+     * @param size   size of data received.
      * @return None.
-     * @see   tiny_set_callbacks
      */
-    typedef void (*on_frame_cb_t)(void *handle, uint8_t *pdata, int size);
+    typedef void (*on_frame_cb_t)(void *udata, uint8_t *pdata, int size);
+
+    /**
+     * on_frame_send_cb_t is a callback function, which is called every time new frame is sent.
+     * @param udata user data
+     * @param pdata  pointer data sent to the channel.
+     * @param size   size of data sent.
+     * @return None.
+     */
+    typedef void (*on_tx_frame_cb_t)(void *udata, const uint8_t *pdata, int size);
 
     /**
      * on_frame_read_cb_t is a callback function, which is called every time new frame is received.

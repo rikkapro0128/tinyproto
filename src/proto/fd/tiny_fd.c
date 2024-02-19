@@ -81,8 +81,8 @@ enum
 
 static const uint8_t seq_bits_mask = 0x07;
 
-static int on_frame_read(void *user_data, void *data, int len);
-static int on_frame_sent(void *user_data, const void *data, int len);
+static void on_frame_read(void *user_data, uint8_t *data, int len);
+static void on_frame_send(void *user_data, const uint8_t *data, int len);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -306,12 +306,6 @@ static void __confirm_sent_frames(tiny_fd_handle_t handle, uint8_t peer, uint8_t
         tiny_fd_frame_info_t *slot = tiny_fd_queue_get_next( &handle->frames.i_queue, TINY_FD_QUEUE_I_FRAME, address, handle->peers[peer].confirm_ns );
         if ( slot != NULL )
         {
-            if ( handle->on_sent_cb )
-            {
-                tiny_mutex_unlock(&handle->frames.mutex);
-                handle->on_sent_cb(handle->user_data, &slot->payload[0], slot->len);
-                tiny_mutex_lock(&handle->frames.mutex);
-            }
             if ( handle->on_send_cb )
             {
                 tiny_mutex_unlock(&handle->frames.mutex);
@@ -444,12 +438,6 @@ static int __on_i_frame_read(tiny_fd_handle_t handle, uint8_t peer, void *data, 
     // Provide data to user only if we expect this frame
     if ( result == TINY_SUCCESS )
     {
-        if ( handle->on_frame_cb )
-        {
-            tiny_mutex_unlock(&handle->frames.mutex);
-            handle->on_frame_cb(handle->user_data, (uint8_t *)data + 2, len - 2);
-            tiny_mutex_lock(&handle->frames.mutex);
-        }
         if ( handle->on_read_cb )
         {
             tiny_mutex_unlock(&handle->frames.mutex);
@@ -564,19 +552,19 @@ static int __on_u_frame_read(tiny_fd_handle_t handle, uint8_t peer, void *data, 
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static int on_frame_read(void *user_data, void *data, int len)
+static void on_frame_read(void *user_data, uint8_t *data, int len)
 {
     tiny_fd_handle_t handle = (tiny_fd_handle_t)user_data;
     if ( len < 2 )
     {
-        LOG(TINY_LOG_WRN, "FD: received too small frame\n");
-        return TINY_ERR_FAILED;
+        LOG(TINY_LOG_WRN, "%s: received too small frame\n", "FD");
+        return;
     }
     uint8_t peer = __address_field_to_peer( handle, ((uint8_t *)data)[0] );
     if ( peer == 0xFF )
     {
         // it seems that the frame is not for us. Just exit
-        return len;
+        return;
     }
     tiny_mutex_lock(&handle->frames.mutex);
     handle->peers[peer].last_ka_ts = tiny_millis();
@@ -621,10 +609,9 @@ static int on_frame_read(void *user_data, void *data, int len)
         tiny_events_set( &handle->events, FD_EVENT_HAS_MARKER );
     }
     tiny_mutex_unlock(&handle->frames.mutex);
-    return len;
 }
 
-static int on_frame_sent(void *user_data, const void *data, int len)
+static void on_frame_send(void *user_data, const uint8_t *data, int len)
 {
     tiny_fd_handle_t handle = (tiny_fd_handle_t)user_data;
     uint8_t peer = __address_field_to_peer( handle, ((const uint8_t *)data)[0] );
@@ -632,7 +619,7 @@ static int on_frame_sent(void *user_data, const void *data, int len)
     if ( peer == 0xFF )
     {
         // Do nothing for now, but this should never happen
-        return len;
+        return;
     }
     tiny_mutex_lock(&handle->frames.mutex);
     if ( (control & HDLC_I_FRAME_MASK) == HDLC_I_FRAME_BITS )
@@ -666,8 +653,7 @@ static int on_frame_sent(void *user_data, const void *data, int len)
         LOG(TINY_LOG_INFO, "[%p] [RELEASED MARKER]\n", handle);
     }
     tiny_events_clear( &handle->events, flags );
-    tiny_mutex_unlock( &handle->frames.mutex );
-    return len;
+    tiny_mutex_unlock(&handle->frames.mutex);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -676,34 +662,35 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
 {
     const uint8_t peers_count = init->peers_count == 0 ? 1 : init->peers_count;
     *handle = NULL;
-    if ( (0 == init->on_frame_cb && 0 == init->on_read_cb) || (0 == init->buffer) || (0 == init->buffer_size) )
+    if ( (0 == init->on_read_cb) || (0 == init->buffer) || (0 == init->buffer_size) )
     {
-        return TINY_ERR_FAILED;
+        LOG(TINY_LOG_CRIT, "Invalid input data: null pointers%s", "\n");
+        return TINY_ERR_INVALID_DATA;
     }
     if ( init->mtu == 0 )
     {
-        int size = tiny_fd_buffer_size_by_mtu_ex(peers_count, 0, init->window_frames, init->crc_type);
+        int size = tiny_fd_buffer_size_by_mtu_ex(peers_count, 0, init->window_frames, init->crc_type, 1);
         init->mtu = (init->buffer_size - size) / (init->window_frames + 1);
         if ( init->mtu < 1 )
         {
-            LOG(TINY_LOG_CRIT, "Calculated mtu size is zero, no payload transfer is available\n");
-            return TINY_ERR_INVALID_DATA;
+            LOG(TINY_LOG_CRIT, "Calculated mtu size is zero, no payload transfer is available%s", "\n");
+            return TINY_ERR_OUT_OF_MEMORY;
         }
     }
-    if ( init->buffer_size < tiny_fd_buffer_size_by_mtu_ex(peers_count, init->mtu, init->window_frames, init->crc_type) )
+    if ( init->buffer_size < tiny_fd_buffer_size_by_mtu_ex(peers_count, init->mtu, init->window_frames, init->crc_type, 1) )
     {
         LOG(TINY_LOG_CRIT, "Too small buffer for FD protocol %i < %i\n", init->buffer_size,
-            tiny_fd_buffer_size_by_mtu_ex(peers_count, init->mtu, init->window_frames, init->crc_type));
-        return TINY_ERR_INVALID_DATA;
+            tiny_fd_buffer_size_by_mtu_ex(peers_count, init->mtu, init->window_frames, init->crc_type, 1));
+        return TINY_ERR_OUT_OF_MEMORY;
     }
     if ( init->window_frames < 2 )
     {
-        LOG(TINY_LOG_CRIT, "HDLC doesn't support less than 2-frames queue\n");
+        LOG(TINY_LOG_CRIT, "HDLC doesn't support less than 2-frames queue%s", "\n");
         return TINY_ERR_INVALID_DATA;
     }
     if ( !init->retry_timeout && !init->send_timeout )
     {
-        LOG(TINY_LOG_CRIT, "HDLC uses timeouts for ACK, at least retry_timeout, or send_timeout must be specified\n");
+        LOG(TINY_LOG_CRIT, "HDLC uses timeouts for ACK, at least retry_timeout, or send_timeout must be specified%s", "\n");
         return TINY_ERR_INVALID_DATA;
     }
     memset(init->buffer, 0, init->buffer_size);
@@ -718,7 +705,8 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
      * To do that we need to calculate the size required for all FD buffers
      * We do not need to align the buffer for the HDLC level, since it done by low level API. */
     uint8_t *hdlc_ll_ptr = ptr;
-    int hdlc_ll_size = (int)((uint8_t *)init->buffer + init->buffer_size - ptr - // Remaining size
+    // TODO: Hack: remove - 4
+    int hdlc_ll_size = (int)((uint8_t *)init->buffer + init->buffer_size - ptr - 4 - // Remaining size
                              init->window_frames *                               // Number of frames multiply by frame size (headers + payload + pointers)
                                  ( sizeof(tiny_fd_frame_info_t *) + init->mtu + sizeof(tiny_fd_frame_info_t) - sizeof(((tiny_fd_frame_info_t *)0)->payload) ) -
                              TINY_FD_U_QUEUE_MAX_SIZE *
@@ -757,27 +745,26 @@ int tiny_fd_init(tiny_fd_handle_t *handle, tiny_fd_init_t *init)
     {
         LOG(TINY_LOG_CRIT, "Out of provided memory: provided %i bytes, used %i bytes\n", init->buffer_size,
             (int)(ptr - (uint8_t *)init->buffer));
-        return TINY_ERR_INVALID_DATA;
+        return TINY_ERR_OUT_OF_MEMORY;
     }
-    /* Lets allocate memory for HDLC low level protocol */
+    /* Lets initialize memory for HDLC low level protocol */
     hdlc_ll_init_t _init = { 0 };
     _init.on_frame_read = on_frame_read;
-    _init.on_frame_sent = on_frame_sent;
+    _init.on_frame_send = on_frame_send;
     _init.user_data = protocol;
     _init.crc_type = init->crc_type;
     _init.buf_size = hdlc_ll_size;
     _init.buf = hdlc_ll_ptr;
+    _init.mtu = init->mtu + sizeof(tiny_frame_header_t);
 
     int result = hdlc_ll_init(&protocol->_hdlc, &_init);
     if ( result != TINY_SUCCESS )
     {
-        LOG(TINY_LOG_CRIT, "HDLC low level initialization failed");
+        LOG(TINY_LOG_CRIT, "HDLC low level initialization failed%s", "\n");
         return result;
     }
 
     protocol->user_data = init->pdata;
-    protocol->on_frame_cb = init->on_frame_cb;
-    protocol->on_sent_cb = init->on_sent_cb;
     protocol->on_read_cb = init->on_read_cb;
     protocol->on_send_cb = init->on_send_cb;
     protocol->on_connect_event_cb = init->on_connect_event_cb;
@@ -1048,7 +1035,7 @@ static void tiny_fd_disconnected_check_idle_timeout(tiny_fd_handle_t handle, uin
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tiny_fd_get_tx_data(tiny_fd_handle_t handle, void *data, int len)
+int tiny_fd_get_tx_data(tiny_fd_handle_t handle, void *data, int len, uint32_t timeout)
 {
     bool repeat = true;
     int result = 0;
@@ -1079,9 +1066,9 @@ int tiny_fd_get_tx_data(tiny_fd_handle_t handle, void *data, int len)
             }
             // Since no send operation is in progress, check if we have something to send
             // Check if the station has marker to send FIRST (That means, we are allowed to send anything still)
-            if ( tiny_events_wait(&handle->events, FD_EVENT_HAS_MARKER, EVENT_BITS_LEAVE, 0 ) )
+            if ( tiny_events_wait(&handle->events, FD_EVENT_HAS_MARKER, EVENT_BITS_LEAVE, timeout ) )
             {
-                if ( handle->mode == TINY_FD_MODE_NRM || tiny_events_wait(&handle->events, FD_EVENT_TX_DATA_AVAILABLE, EVENT_BITS_CLEAR, 0) )
+                if ( tiny_events_wait(&handle->events, FD_EVENT_TX_DATA_AVAILABLE, EVENT_BITS_CLEAR, timeout) || handle->mode == TINY_FD_MODE_NRM )
                 {
                     int frame_len = 0;
                     uint8_t *frame_data = tiny_fd_get_next_frame_to_send(handle, &frame_len, peer);
@@ -1142,7 +1129,7 @@ int tiny_fd_get_tx_data(tiny_fd_handle_t handle, void *data, int len)
 int tiny_fd_run_tx(tiny_fd_handle_t handle, write_block_cb_t write_func)
 {
     uint8_t buf[4];
-    int len = tiny_fd_get_tx_data(handle, buf, sizeof(buf));
+    int len = tiny_fd_get_tx_data(handle, buf, sizeof(buf), 1);
     if ( len <= 0 )
     {
         return len;
@@ -1163,7 +1150,7 @@ int tiny_fd_run_tx(tiny_fd_handle_t handle, write_block_cb_t write_func)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tiny_fd_send_packet_to(tiny_fd_handle_t handle, uint8_t address, const void *data, int len)
+int tiny_fd_send_packet_to(tiny_fd_handle_t handle, uint8_t address, const void *data, int len, uint32_t timeout)
 {
     int result;
     uint8_t peer;
@@ -1184,16 +1171,15 @@ int tiny_fd_send_packet_to(tiny_fd_handle_t handle, uint8_t address, const void 
     uint32_t start_ms = tiny_millis();
     if ( len > tiny_fd_queue_get_mtu( &handle->frames.i_queue ) )
     {
-        LOG(TINY_LOG_ERR, "[%p] PUT frame error\n", handle);
+        LOG(TINY_LOG_ERR, "[%p] PUT frame error: data len %i is greater MTU %i\n", handle, len, handle->frames.i_queue.mtu);
         result = TINY_ERR_DATA_TOO_LARGE;
     }
     // Wait until there is room for new frame
-    else if ( tiny_events_wait(&handle->peers[peer].events, FD_EVENT_CAN_ACCEPT_I_FRAMES, EVENT_BITS_CLEAR,
-                               handle->send_timeout) )
+    else if ( tiny_events_wait(&handle->peers[peer].events, FD_EVENT_CAN_ACCEPT_I_FRAMES, EVENT_BITS_CLEAR, timeout) )
     {
         uint32_t delta_ms = (uint32_t)(tiny_millis() - start_ms);
         if ( tiny_events_wait(&handle->events, FD_EVENT_QUEUE_HAS_FREE_SLOTS, EVENT_BITS_CLEAR,
-                               handle->send_timeout > delta_ms ? (handle->send_timeout - delta_ms) : 0) )
+                               timeout > delta_ms ? (timeout - delta_ms) : 0) )
         {
             tiny_mutex_lock(&handle->frames.mutex);
             // Check if space is actually available
@@ -1243,21 +1229,21 @@ int tiny_fd_send_packet_to(tiny_fd_handle_t handle, uint8_t address, const void 
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *data, int len)
+int tiny_fd_send_packet(tiny_fd_handle_t handle, const void *data, int len, uint32_t timeout)
 {
-    return tiny_fd_send_packet_to(handle, TINY_FD_PRIMARY_ADDR, data, len);
+    return tiny_fd_send_packet_to(handle, TINY_FD_PRIMARY_ADDR, data, len, timeout);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 int tiny_fd_buffer_size_by_mtu(int mtu, int window)
 {
-    return tiny_fd_buffer_size_by_mtu_ex(0, mtu, window, HDLC_CRC_16);
+    return tiny_fd_buffer_size_by_mtu_ex(0, mtu, window, HDLC_CRC_16, 1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tiny_fd_buffer_size_by_mtu_ex(uint8_t peers_count, int mtu, int window, hdlc_crc_t crc_type)
+int tiny_fd_buffer_size_by_mtu_ex(uint8_t peers_count, int mtu, int tx_window, hdlc_crc_t crc_type, int rx_window)
 {
     if ( !peers_count )
     {
@@ -1267,11 +1253,11 @@ int tiny_fd_buffer_size_by_mtu_ex(uint8_t peers_count, int mtu, int window, hdlc
     return sizeof(tiny_fd_data_t) + TINY_ALIGN_STRUCT_VALUE - 1 +
            peers_count * sizeof(tiny_fd_peer_info_t) +
            // RX side
-           hdlc_ll_get_buf_size_ex(mtu + sizeof(tiny_frame_header_t), crc_type) +
+           hdlc_ll_get_buf_size_ex(mtu + sizeof(tiny_frame_header_t), crc_type, rx_window) +
            // TX side
            (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_fd_frame_info_t) + mtu -
             sizeof(((tiny_fd_frame_info_t *)0)->payload)) *
-               window +
+               tx_window +
            (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_fd_frame_info_t)) * TINY_FD_U_QUEUE_MAX_SIZE;
 }
 
@@ -1291,14 +1277,14 @@ int tiny_fd_get_mtu(tiny_fd_handle_t handle)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tiny_fd_send_to(tiny_fd_handle_t handle, uint8_t address, const void *data, int len)
+int tiny_fd_send_to(tiny_fd_handle_t handle, uint8_t address, const void *data, int len, uint32_t timeout)
 {
     const uint8_t *ptr = (const uint8_t *)data;
     int left = len;
     while ( left > 0 )
     {
         int size = left < tiny_fd_queue_get_mtu( &handle->frames.i_queue ) ? left : tiny_fd_queue_get_mtu( &handle->frames.i_queue );
-        int result = tiny_fd_send_packet_to(handle, address, ptr, size);
+        int result = tiny_fd_send_packet_to(handle, address, ptr, size, timeout);
         if ( result != TINY_SUCCESS )
         {
             break;
@@ -1310,9 +1296,9 @@ int tiny_fd_send_to(tiny_fd_handle_t handle, uint8_t address, const void *data, 
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int tiny_fd_send(tiny_fd_handle_t handle, const void *data, int len)
+int tiny_fd_send(tiny_fd_handle_t handle, const void *data, int len, uint32_t timeout)
 {
-    return tiny_fd_send_to(handle, (HDLC_PRIMARY_ADDR >> 2), data, len);
+    return tiny_fd_send_to(handle, (HDLC_PRIMARY_ADDR >> 2), data, len, timeout);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

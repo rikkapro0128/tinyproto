@@ -45,13 +45,21 @@ extern "C"
 
 #define FD_PEER_BUF_SIZE() ( sizeof(tiny_fd_peer_info_t) )
 
+#define FD_MIN_BUF_SIZE(mtu, window)                                                                                   \
+    (sizeof(tiny_fd_data_t) + TINY_ALIGN_STRUCT_VALUE - 1 + \
+     HDLC_MIN_BUF_SIZE(mtu + sizeof(tiny_frame_header_t), HDLC_CRC_16) +                     \
+      ( 1 * FD_PEER_BUF_SIZE() ) + \
+      (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_fd_frame_info_t) + mtu \
+                                      - sizeof(((tiny_fd_frame_info_t *)0)->payload) ) * window + \
+          ( sizeof(tiny_fd_frame_info_t) + sizeof(tiny_fd_frame_info_t *) ) * TINY_FD_U_QUEUE_MAX_SIZE )
 
-#define FD_MIN_BUF_SIZE(mtu, window) ( sizeof(tiny_fd_data_t) + TINY_ALIGN_STRUCT_VALUE - 1 + \
-                                      HDLC_MIN_BUF_SIZE( mtu + sizeof(tiny_frame_header_t), HDLC_CRC_16 ) + \
-                                      ( 1 * FD_PEER_BUF_SIZE() ) + \
-                                      ( sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_fd_frame_info_t) + mtu \
-                                                                      - sizeof(((tiny_fd_frame_info_t *)0)->payload) ) * window + \
-                                      ( sizeof(tiny_fd_frame_info_t) + sizeof(tiny_fd_frame_info_t *) ) * TINY_FD_U_QUEUE_MAX_SIZE )
+#define FD_BUF_SIZE_EX(mtu, tx_window, crc, rx_window)                                                                      \
+    (sizeof(tiny_fd_data_t) + TINY_ALIGN_STRUCT_VALUE - 1 + \
+     HDLC_BUF_SIZE_EX(mtu + sizeof(tiny_frame_header_t), crc, rx_window) +           \
+      ( 1 * FD_PEER_BUF_SIZE() ) + \
+      (sizeof(tiny_fd_frame_info_t *) + sizeof(tiny_i_frame_info_t) + mtu \
+                                      - sizeof(((tiny_fd_frame_info_t *)0)->payload)) * tx_window + \
+       ( sizeof(tiny_fd_frame_info_t) + sizeof(tiny_fd_frame_info_t *) ) * TINY_FD_U_QUEUE_MAX_SIZE)
 
     typedef enum
     {
@@ -103,10 +111,6 @@ extern "C"
 
     typedef struct tiny_fd_data_t
     {
-        /// Callback to process received frames
-        on_frame_cb_t on_frame_cb;
-        /// Callback to get notification of sent frames
-        on_frame_cb_t on_sent_cb;
         /// Callback to process received frames
         on_frame_read_cb_t on_read_cb;
         /// Callback to process received frames

@@ -30,7 +30,7 @@
 #include <unistd.h>
 
 TinyHelperFd::TinyHelperFd(FakeEndpoint *endpoint, int rxBufferSize,
-                           const std::function<void(uint8_t *, int)> &onRxFrameCb, int window_frames, int timeout)
+                           const std::function<void(uint8_t address, uint8_t *, int)> &onRxFrameCb, int window_frames, int timeout)
     : IBaseHelper(endpoint, rxBufferSize)
     , m_onRxFrameCb(onRxFrameCb)
     , m_rxBufferSize(rxBufferSize)
@@ -41,7 +41,7 @@ TinyHelperFd::TinyHelperFd(FakeEndpoint *endpoint, int rxBufferSize,
 }
 
 TinyHelperFd::TinyHelperFd(FakeEndpoint *endpoint, int rxBufferSize, uint8_t mode,
-                           const std::function<void(uint8_t *, int)> &onRxFrameCb)
+                           const std::function<void(uint8_t address, uint8_t *, int)> &onRxFrameCb)
     : IBaseHelper(endpoint, rxBufferSize)
     , m_onRxFrameCb(onRxFrameCb)
     , m_rxBufferSize(rxBufferSize)
@@ -70,12 +70,13 @@ int TinyHelperFd::init()
 {
     tiny_fd_init_t init{};
     init.pdata = this;
-    init.on_frame_cb = onRxFrame;
-    init.on_sent_cb = onTxFrame;
+    init.on_read_cb = onRxFrame;
+    init.on_send_cb = onTxFrame;
     init.on_connect_event_cb = onConnect;
     init.buffer = m_buffer;
     init.buffer_size = m_rxBufferSize;
     init.window_frames = m_window ? m_window : 7;
+    m_timeout = m_timeout < 0 ? 2000 : m_timeout;
     init.send_timeout = m_timeout < 0 ? 2000 : m_timeout;
     init.retry_timeout = init.send_timeout ? (init.send_timeout / 2) : 200;
     init.retries = 2;
@@ -99,12 +100,12 @@ int TinyHelperFd::registerPeer(uint8_t address)
 
 int TinyHelperFd::send(uint8_t *buf, int len)
 {
-    return tiny_fd_send_packet(m_handle, buf, len);
+    return tiny_fd_send_packet(m_handle, buf, len, m_timeout);
 }
 
 int TinyHelperFd::sendto(uint8_t address, uint8_t *buf, int len)
 {
-    return tiny_fd_send_packet_to(m_handle, address, buf, len);
+    return tiny_fd_send_packet_to(m_handle, address, buf, len, m_timeout);
 }
 
 void TinyHelperFd::MessageSender(TinyHelperFd *helper, int count, std::string msg)
@@ -140,7 +141,7 @@ int TinyHelperFd::send(int count, const std::string &msg)
 int TinyHelperFd::run_tx()
 {
     uint8_t buf[16];
-    int len = tiny_fd_get_tx_data(m_handle, buf, sizeof(buf));
+    int len = tiny_fd_get_tx_data(m_handle, buf, sizeof(buf), 0);
     uint8_t *ptr = buf;
     while ( len > 0 )
     {
@@ -167,17 +168,17 @@ void TinyHelperFd::wait_until_rx_count(int count, uint32_t timeout)
         usleep(1000);
 }
 
-void TinyHelperFd::onRxFrame(void *handle, uint8_t *buf, int len)
+void TinyHelperFd::onRxFrame(void *handle, uint8_t address, uint8_t *buf, int len)
 {
     TinyHelperFd *helper = reinterpret_cast<TinyHelperFd *>(handle);
     helper->m_rx_count++;
     if ( helper->m_onRxFrameCb )
     {
-        helper->m_onRxFrameCb(buf, len);
+        helper->m_onRxFrameCb(address, buf, len);
     }
 }
 
-void TinyHelperFd::onTxFrame(void *handle, uint8_t *buf, int len)
+void TinyHelperFd::onTxFrame(void *handle, uint8_t address, const uint8_t *buf, int len)
 {
     TinyHelperFd *helper = reinterpret_cast<TinyHelperFd *>(handle);
     helper->m_tx_count++;

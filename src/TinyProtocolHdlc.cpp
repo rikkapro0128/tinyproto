@@ -57,7 +57,7 @@ void Hdlc::begin(write_block_cb_t writecb, read_block_cb_t readcb)
 {
     m_data.send_tx = writecb;
     m_data.on_frame_read = onReceiveInternal;
-    m_data.on_frame_sent = onSendInternal;
+    m_data.on_frame_send = onSendInternal;
     m_data.rx_buf = m_buffer;
     m_data.rx_buf_size = m_bufferSize;
     m_data.crc_type = m_crc;

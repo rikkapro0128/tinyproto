@@ -22,6 +22,7 @@
     SOFTWARE.
 */
 
+#include "hal/tiny_serial.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/uart.h"
@@ -33,7 +34,6 @@
 #define TINY_MULTITHREAD
 #define WINDOW_SIZE (7)
 #define GENERATED_PACKET_SIZE (64)
-#define BUF_SIZE (512)
 
 /* Creating protocol object is simple. Lets define 256 bytes as maximum. *
  * size for the packet and use 7 packets in outgoing queue.             */
@@ -43,6 +43,7 @@ uint32_t s_receivedBytes = 0;
 uint32_t s_receivedOverheadBytes = 0;
 uint32_t s_sentBytes = 0;
 uint32_t s_sentOverheadBytes = 0;
+tiny_serial_handle_t s_serial = TINY_SERIAL_INVALID;
 
 void onReceive(void *udata, uint8_t addr, tinyproto::IPacket &pkt)
 {
@@ -68,7 +69,7 @@ void tx_task(void *arg)
     for ( ;; )
     {
         proto.run_tx(
-            [](void *p, const void *b, int s) -> int { return uart_read_bytes(UART_NUM_1, (uint8_t *)b, s, 10); });
+            [](void *p, const void *b, int s) -> int { return tiny_serial_send_timeout(s_serial, b, s, 100); });
     }
     vTaskDelete(NULL);
 }
@@ -77,7 +78,7 @@ void rx_task(void *arg)
 {
     for ( ;; )
     {
-        proto.run_rx([](void *p, void *b, int s) -> int { return uart_write_bytes(UART_NUM_1, (const char *)b, s); });
+        proto.run_rx([](void *p, void *b, int s) -> int { return tiny_serial_read_timeout(s_serial, b, s, 100); });
     }
     vTaskDelete(NULL);
 }
@@ -86,20 +87,7 @@ void rx_task(void *arg)
 
 void main_task(void *args)
 {
-    uart_config_t uart_config = {
-        .baud_rate = 115200,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .rx_flow_ctrl_thresh = 0,
-        .use_ref_tick = false,
-        //        .source_clk = 0, // APB
-    };
-    ESP_ERROR_CHECK(uart_param_config(UART_NUM_1, &uart_config));
-    ESP_ERROR_CHECK(
-        uart_set_pin(UART_NUM_1, GPIO_NUM_4 /*TX*/, GPIO_NUM_5 /* RX */, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-    ESP_ERROR_CHECK(uart_driver_install(UART_NUM_1, BUF_SIZE * 2, 0, 0, NULL, 0));
+    s_serial = tiny_serial_open("uart1,4,5", 115200);
 
     /* Lets use 16-bit checksum as ESP32 allows that */
     proto.enableCrc16();
@@ -119,7 +107,7 @@ void main_task(void *args)
 #endif
     auto startTs = std::chrono::steady_clock::now();
 
-    tinyproto::Packet packet(GENERATED_PACKET_SIZE);
+    tinyproto::HeapPacket packet(GENERATED_PACKET_SIZE);
     packet.put("Generated frame. test in progress");
 
     for ( ;; )
@@ -146,9 +134,8 @@ void main_task(void *args)
 #if defined(TINY_MULTITHREAD)
 
 #else
-        proto.run_rx([](void *p, void *b, int s) -> int { return uart_read_bytes(UART_NUM_1, (uint8_t *)b, s, 0); });
-        proto.run_tx(
-            [](void *p, const void *b, int s) -> int { return uart_tx_chars(UART_NUM_1, (const char *)b, s); });
+        proto.run_rx([](void *p, void *b, int s) -> int { return tiny_serial_read_timeout(s_serial, b, s, 0); });
+        proto.run_tx([](void *p, const void *b, int s) -> int { return tiny_serial_send_timeout(s_serial, b, s, 0); });
 #endif
     }
     vTaskDelete(NULL);

@@ -78,15 +78,17 @@ int hdlc_ll_init(hdlc_ll_handle_t *handle, hdlc_ll_init_t *init)
     {
         LOG(TINY_LOG_ERR, "[HDLC] failed to init hdlc. buf=%p, size=%i (%i required)\n", init->buf, init->buf_size,
             (int)(sizeof(hdlc_ll_data_t) + TINY_ALIGN_STRUCT_VALUE - 1));
-        return TINY_ERR_FAILED;
+        return TINY_ERR_OUT_OF_MEMORY;
     }
     *handle = (hdlc_ll_handle_t)buf;
     (*handle)->rx_buf = (uint8_t *)buf + sizeof(hdlc_ll_data_t);
     (*handle)->rx_buf_size = buf_size - sizeof(hdlc_ll_data_t);
     (*handle)->crc_type = init->crc_type == HDLC_CRC_OFF ? 0 : init->crc_type;
     (*handle)->on_frame_read = init->on_frame_read;
-    (*handle)->on_frame_sent = init->on_frame_sent;
+    (*handle)->on_frame_send = init->on_frame_send;
     (*handle)->user_data = init->user_data;
+    (*handle)->phys_mtu = init->mtu ? (init->mtu + get_crc_field_size((*handle)->crc_type)): ((*handle)->rx_buf_size);
+    (*handle)->rx.frame_buf = (*handle)->rx_buf;
 
     // Must be last
     hdlc_ll_reset(*handle, HDLC_LL_RESET_BOTH);
@@ -99,9 +101,9 @@ int hdlc_ll_close(hdlc_ll_handle_t handle)
 {
     if ( handle && handle->tx.data )
     {
-        if ( handle->on_frame_sent )
+        if ( handle->on_frame_send )
         {
-            handle->on_frame_sent(handle->user_data, handle->tx.origin_data,
+            handle->on_frame_send(handle->user_data, handle->tx.origin_data,
                                   (int)(handle->tx.data - handle->tx.origin_data) + handle->tx.len);
         }
     }
@@ -167,7 +169,7 @@ static int hdlc_ll_send_start(hdlc_ll_handle_t handle)
 static int hdlc_ll_send_data(hdlc_ll_handle_t handle)
 {
     // This commented out code is never reachable because of implementation of hdlc_ll_put() - it check for zero length
-    //if ( handle->tx.len == 0 )
+    // if ( handle->tx.len == 0 )
     //{
     //    LOG(TINY_LOG_DEB, "[HDLC:%p] hdlc_ll_send_crc\n", handle);
     //    handle->tx.state = hdlc_ll_send_crc;
@@ -271,9 +273,9 @@ static int hdlc_ll_send_end(hdlc_ll_handle_t handle)
         const void *ptr = handle->tx.origin_data;
         handle->tx.origin_data = NULL;
         handle->tx.data = NULL;
-        if ( handle->on_frame_sent )
+        if ( handle->on_frame_send )
         {
-            handle->on_frame_sent(handle->user_data, ptr, len);
+            handle->on_frame_send(handle->user_data, ptr, len);
         }
     }
     return result;
@@ -343,9 +345,9 @@ int hdlc_ll_run_tx(hdlc_ll_handle_t handle, void *data, int len)
 
 int hdlc_ll_put(hdlc_ll_handle_t handle, const void *data, int len)
 {
-    LOG(TINY_LOG_DEB, "[HDLC:%p] hdlc_ll_put\n", handle);
-    if ( !len || !data || !handle )
+    if ( !handle )
     {
+        LOG(TINY_LOG_ERR, "[HDLC:%p] hdlc_ll_put invalid handle passed \n", handle);
         return TINY_ERR_INVALID_DATA;
     }
     // Check if TX thread is ready to accept new data
@@ -353,6 +355,10 @@ int hdlc_ll_put(hdlc_ll_handle_t handle, const void *data, int len)
     {
         LOG(TINY_LOG_WRN, "[HDLC:%p] hdlc_ll_put FAILED\n", handle);
         return TINY_ERR_BUSY;
+    }
+    if ( !len || !data )
+    {
+        return TINY_SUCCESS;
     }
     LOG(TINY_LOG_DEB, "[HDLC:%p] hdlc_ll_put SUCCESS\n", handle);
     handle->tx.origin_data = data;
@@ -379,7 +385,7 @@ static int hdlc_ll_read_start(hdlc_ll_handle_t handle, const uint8_t *data, int 
     }
     LOG(TINY_LOG_DEB, "[HDLC:%p] RX: %02X\n", handle, data[0]);
     handle->rx.escape = 0;
-    handle->rx.data = (uint8_t *)handle->rx_buf;
+    handle->rx.data = handle->rx.frame_buf;
     handle->rx.state = hdlc_ll_read_data;
     return 1;
 }
@@ -403,7 +409,7 @@ static int hdlc_ll_read_data(hdlc_ll_handle_t handle, const uint8_t *data, int l
         {
             handle->rx.escape = 1;
         }
-        else if ( handle->rx.data - (uint8_t *)handle->rx_buf < handle->rx_buf_size )
+        else if ( handle->rx.data - handle->rx.frame_buf < handle->phys_mtu )
         {
             if ( handle->rx.escape )
             {
@@ -415,7 +421,11 @@ static int hdlc_ll_read_data(hdlc_ll_handle_t handle, const uint8_t *data, int l
                 *handle->rx.data = byte;
             }
             handle->rx.data++;
-            // LOG(TINY_LOG_DEB, "%02X\n", handle->rx.data[ handle->rx.len ]);
+        }
+        else
+        {
+            LOG(TINY_LOG_WRN, "[HDLC:%p] No space for incoming byte: len=%i (mtu = %i)\n",
+                              handle, (int)(handle->rx.data - handle->rx.frame_buf), handle->phys_mtu);
         }
         result++;
         data++;
@@ -428,7 +438,7 @@ static int hdlc_ll_read_data(hdlc_ll_handle_t handle, const uint8_t *data, int l
 
 static int hdlc_ll_read_end(hdlc_ll_handle_t handle, const uint8_t *data, int len_bytes)
 {
-    if ( handle->rx.data == handle->rx_buf )
+    if ( handle->rx.data == handle->rx.frame_buf )
     {
         // Impossible, maybe frame alignment is wrong, go to read data again
         LOG(TINY_LOG_WRN, "[HDLC:%p] RX: error in frame alignment, recovering...\n", handle);
@@ -437,8 +447,8 @@ static int hdlc_ll_read_end(hdlc_ll_handle_t handle, const uint8_t *data, int le
         return 0; // That's OK, we actually didn't process anything from user bytes
     }
     handle->rx.state = hdlc_ll_read_start;
-    int len = (int)(handle->rx.data - (uint8_t *)handle->rx_buf);
-    if ( len > handle->rx_buf_size )
+    int len = (int)(handle->rx.data - handle->rx.frame_buf);
+    if ( len > handle->phys_mtu )
     {
         // Buffer size issue, too long packet
         LOG(TINY_LOG_ERR, "[HDLC:%p] RX: tool long frame\n", handle);
@@ -456,19 +466,19 @@ static int hdlc_ll_read_end(hdlc_ll_handle_t handle, const uint8_t *data, int le
     {
 #ifdef CONFIG_ENABLE_CHECKSUM
         case HDLC_CRC_8:
-            calc_crc = tiny_chksum(INITCHECKSUM, handle->rx_buf, len - 1) & 0x00FF;
+            calc_crc = tiny_chksum(INITCHECKSUM, handle->rx.frame_buf, len - 1) & 0x00FF;
             read_crc = handle->rx.data[-1];
             break;
 #endif
 #ifdef CONFIG_ENABLE_FCS16
         case HDLC_CRC_16:
-            calc_crc = tiny_crc16(PPPINITFCS16, handle->rx_buf, len - 2);
+            calc_crc = tiny_crc16(PPPINITFCS16, handle->rx.frame_buf, len - 2);
             read_crc = handle->rx.data[-2] | ((uint16_t)handle->rx.data[-1] << 8);
             break;
 #endif
 #ifdef CONFIG_ENABLE_FCS32
         case HDLC_CRC_32:
-            calc_crc = tiny_crc32(PPPINITFCS32, handle->rx_buf, len - 4);
+            calc_crc = tiny_crc32(PPPINITFCS32, handle->rx.frame_buf, len - 4);
             read_crc = handle->rx.data[-4] | ((uint32_t)handle->rx.data[-3] << 8) |
                        ((uint32_t)handle->rx.data[-2] << 16) | ((uint32_t)handle->rx.data[-1] << 24);
             break;
@@ -482,22 +492,26 @@ static int hdlc_ll_read_end(hdlc_ll_handle_t handle, const uint8_t *data, int le
         LOG(TINY_LOG_ERR, "[HDLC:%p] RX: WRONG CRC (calc:%08X != %08X)\n", handle, calc_crc, read_crc);
         if ( TINY_LOG_DEB < g_tiny_log_level )
             for ( int i = 0; i < len; i++ )
-                fprintf(stderr, " %c ", (char)((uint8_t *)handle->rx_buf)[i]);
-        LOG(TINY_LOG_DEB, "\n");
+                fprintf(stderr, " %c ", (char)(handle->rx.frame_buf)[i]);
+        LOG(TINY_LOG_DEB, "[%s]", "\n");
         if ( TINY_LOG_DEB < g_tiny_log_level )
             for ( int i = 0; i < len; i++ )
-                fprintf(stderr, " %02X ", ((uint8_t *)handle->rx_buf)[i]);
-        LOG(TINY_LOG_DEB, "\n-----------\n");
+                fprintf(stderr, " %02X ", (handle->rx.frame_buf)[i]);
+        LOG(TINY_LOG_DEB, "\n%s\n","------------");
 #endif
         return TINY_ERR_WRONG_CRC;
     }
-    len -= (uint8_t)handle->crc_type / 8;
     // Shift back data pointer, pointing to the last byte after payload
-    handle->rx.data -= (uint8_t)handle->crc_type / 8;
+    len -= (uint8_t)handle->crc_type / 8;
     LOG(TINY_LOG_INFO, "[HDLC:%p] RX: Frame success: %d bytes\n", handle, len);
     if ( handle->on_frame_read )
     {
-        handle->on_frame_read(handle->user_data, handle->rx_buf, len);
+        handle->on_frame_read(handle->user_data, handle->rx.frame_buf, len);
+    }
+    handle->rx.frame_buf += handle->phys_mtu;
+    if ( handle->rx.frame_buf - handle->rx_buf + handle->phys_mtu > handle->rx_buf_size )
+    {
+        handle->rx.frame_buf = handle->rx_buf;
     }
     return TINY_SUCCESS;
 }
@@ -539,10 +553,10 @@ int hdlc_ll_get_buf_size(int mtu)
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-int hdlc_ll_get_buf_size_ex(int mtu, hdlc_crc_t crc_type)
+int hdlc_ll_get_buf_size_ex(int mtu, hdlc_crc_t crc_type, int rx_window)
 {
     // TINY_ALIGN_STRUCT_VALUE is added to satisfy alignment requirements
-    return get_crc_field_size(crc_type) + sizeof(hdlc_ll_data_t) + mtu + TINY_ALIGN_STRUCT_VALUE - 1;
+    return (get_crc_field_size(crc_type) + mtu) * rx_window + sizeof(hdlc_ll_data_t) + TINY_ALIGN_STRUCT_VALUE - 1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

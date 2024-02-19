@@ -1,5 +1,5 @@
 /*
-    Copyright 2021-2022 (C) Alexey Dynda
+    Copyright 2021-2022 (,2022 (C) Alexey Dynda
 
     This file is part of Tiny Protocol Library.
 
@@ -40,7 +40,7 @@ typedef struct
     hdlc_crc_t crc_type;
     int mtu;
     void *buffer;
-    PyObject *on_frame_sent;
+    PyObject *on_frame_send;
     PyObject *on_frame_read;
 } Hdlc;
 
@@ -70,7 +70,7 @@ static int Hdlc_init(Hdlc *self, PyObject *args, PyObject *kwds)
     self->buffer = NULL;
     self->crc_type = HDLC_CRC_16;
     self->user_buffer.buf = NULL;
-    self->on_frame_sent = NULL;
+    self->on_frame_send = NULL;
     self->on_frame_read = NULL;
     self->mtu = 1500;
     return 0;
@@ -90,29 +90,22 @@ static PyObject *Hdlc_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 ////////////////////////////// Internal callbacks
 
-static int on_frame_read(void *user_data, void *data, int len)
+static void on_frame_read(void *user_data, uint8_t *data, int len)
 {
-    int result = 0;
     Hdlc *self = (Hdlc *)user_data;
     if ( self->on_frame_read )
     {
         PyObject *arg = PyByteArray_FromStringAndSize((const char *)data, (Py_ssize_t)len);
         PyObject *temp = PyObject_CallFunctionObjArgs(self->on_frame_read, arg, NULL);
-        if ( temp && PyLong_Check(temp) )
-        {
-            result = PyLong_AsLong(temp);
-        }
         Py_XDECREF(temp); // Dereference result
         Py_DECREF(arg);   // We do not need ByteArray anymore
     }
-    return result;
 }
 
-static int on_frame_sent(void *user_data, const void *data, int len)
+static void on_frame_send(void *user_data, const uint8_t *data, int len)
 {
-    int result = 0;
     Hdlc *self = (Hdlc *)user_data;
-    if ( self->on_frame_sent )
+    if ( self->on_frame_send )
     {
         PyObject *arg = PyByteArray_FromStringAndSize((const char *)data, (Py_ssize_t)len);
         // We can free Py_buffer user_buffer only after we constructed new PyObject with the data
@@ -121,11 +114,7 @@ static int on_frame_sent(void *user_data, const void *data, int len)
             PyBuffer_Release(&self->user_buffer);
             self->user_buffer.buf = NULL;
         }
-        PyObject *temp = PyObject_CallFunctionObjArgs(self->on_frame_sent, arg, NULL);
-        if ( temp && PyLong_Check(temp) )
-        {
-            result = PyLong_AsLong(temp);
-        }
+        PyObject *temp = PyObject_CallFunctionObjArgs(self->on_frame_send, arg, NULL);
         Py_XDECREF(temp); // Dereference result
         Py_DECREF(arg);   // We do not need ByteArray anymore
     }
@@ -137,7 +126,6 @@ static int on_frame_sent(void *user_data, const void *data, int len)
             self->user_buffer.buf = NULL;
         }
     }
-    return result;
 }
 
 ////////////////////////////// METHODS
@@ -148,8 +136,8 @@ static PyObject *Hdlc_begin(Hdlc *self)
     init.user_data = self;
     init.crc_type = self->crc_type;
     init.on_frame_read = on_frame_read;
-    init.on_frame_sent = on_frame_sent;
-    init.buf_size = hdlc_ll_get_buf_size_ex(self->mtu, self->crc_type);
+    init.on_frame_send = on_frame_send;
+    init.buf_size = hdlc_ll_get_buf_size_ex(self->mtu, self->crc_type, 1);
     self->buffer = PyObject_Malloc(init.buf_size);
     init.buf = self->buffer;
     int result = hdlc_ll_init(&self->handle, &init);
@@ -247,15 +235,15 @@ static int Hdlc_set_on_read(Hdlc *self, PyObject *value, void *closure)
 
 static PyObject *Hdlc_get_on_send(Hdlc *self, void *closure)
 {
-    Py_INCREF(self->on_frame_sent);
-    return self->on_frame_sent;
+    Py_INCREF(self->on_frame_send);
+    return self->on_frame_send;
 }
 
 static int Hdlc_set_on_send(Hdlc *self, PyObject *value, void *closure)
 {
-    PyObject *tmp = self->on_frame_sent;
+    PyObject *tmp = self->on_frame_send;
     Py_INCREF(value);
-    self->on_frame_sent = value;
+    self->on_frame_send = value;
     Py_XDECREF(tmp);
     return 0;
 }

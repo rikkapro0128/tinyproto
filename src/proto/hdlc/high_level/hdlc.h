@@ -89,7 +89,7 @@ extern "C"
          * @return user callback must return negative value in case of error
          *         or 0 value if packet is successfully processed.
          */
-        int (*on_frame_sent)(void *user_data, const void *data, int len);
+        int (*on_frame_send)(void *user_data, const void *data, int len);
 
         /**
          * Buffer to be used by hdlc level to receive data to

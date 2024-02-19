@@ -17,6 +17,8 @@ CPPFLAGS += -I./src
 
 CFLAGS += -std=gnu99
 CPPFLAGS += -Os -Wall -Werror -ffunction-sections -fdata-sections $(EXTRA_CPPFLAGS)
+# Uncomment for performance profiling
+# CPPFLAGS += -pg
 CXXFLAGS += -std=c++11
 
 ifneq ($(LOG_LEVEL),)
@@ -74,9 +76,18 @@ OBJ_LIB += \
         src/hal/tiny_types.o \
         src/hal/tiny_types_cpp.o \
         src/hal/tiny_serial.o \
+	src/hal/tiny_serial_cpp.o \
         src/TinyProtocolHdlc.o \
         src/TinyProtocolFd.o \
         src/TinyLightProtocol.o \
+	src/TinyProtocol.o \
+	src/link/TinyLinkLayer.o \
+	src/link/TinyFdLinkLayer.o \
+	src/link/TinyHdlcLinkLayer.o \
+	src/link/TinySerialLinkLayer.o \
+	src/link/TinySerialFdLink.o \
+	src/link/TinySerialHdlcLink.o \
+	src/interface/TinySerial.o \
 
 prep:
 ifdef CONFIG_FOR_WINDOWS_BUILD

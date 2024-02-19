@@ -272,7 +272,7 @@ void FakeWire::TransferData(int bytes)
             break;
         }
 //        fprintf(stderr, "*T: %02X\n", data);
-        if ( data == 0x7E ) { if ( ++cnt >=3 ) *((uint8_t *)0) = 1; } else cnt = 0;
+        //if ( data == 0x7E ) { if ( ++cnt >=3 ) *((uint8_t *)0) = 1; } else cnt = 0;
         m_byte_counter++;
         bool error_happened = false;
         for ( auto &err : m_errors )

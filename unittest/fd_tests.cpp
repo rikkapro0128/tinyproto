@@ -96,7 +96,7 @@ TEST(FD, arduino_to_pc)
     TinyHelperFd pc(&conn.endpoint1(), 4096, nullptr, 4, 400);
     TinyHelperFd arduino(
         &conn.endpoint2(), tiny_fd_buffer_size_by_mtu(64, 4),
-        [&arduino, &arduino_timedout_frames](uint8_t *b, int s) -> void {
+        [&arduino, &arduino_timedout_frames](uint8_t a, uint8_t *b, int s) -> void {
             if ( arduino.send(b, s) == TINY_ERR_TIMEOUT )
                 arduino_timedout_frames++;
         },
@@ -297,17 +297,19 @@ TEST(FD, on_connect_callback)
 
     helper1.run(true);
     helper2.run(true);
+    // Give some time to initialize threads
+    tiny_sleep( 10 );
     uint8_t data[1] = {0xAA};
     helper1.send( data, sizeof(data) );
 
-    for (int i = 0; i < 200 && !connected; i++)
+    for (int i = 0; i < 1000 && !connected; i++)
     {
         tiny_sleep( 1 );
     }
     CHECK_EQUAL(true, connected);
     helper2.stop();
 
-    for (int i = 0; i < 200 && connected; i++)
+    for (int i = 0; i < 1000 && connected; i++)
     {
         tiny_sleep( 1 );
     }

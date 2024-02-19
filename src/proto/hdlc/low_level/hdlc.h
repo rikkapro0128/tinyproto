@@ -81,11 +81,9 @@ extern "C"
          * @param user_data user-defined data
          * @param data pointer to received data
          * @param len size of received data in bytes
-         * @return user callback must return negative value in case of error
-         *         or 0 value if packet is successfully processed.
          */
 
-        int (*on_frame_read)(void *user_data, void *data, int len);
+        on_frame_cb_t on_frame_read;
 
         /**
          * User-defined callback, which is called when the packet is sent to TX
@@ -94,10 +92,8 @@ extern "C"
          * @param user_data user-defined data
          * @param data pointer to sent data
          * @param len size of sent data in bytes
-         * @return user callback must return negative value in case of error
-         *         or 0 value if packet is successfully processed.
          */
-        int (*on_frame_sent)(void *user_data, const void *data, int len);
+        on_tx_frame_cb_t on_frame_send;
 
         /**
          * Buffer to be used by hdlc level to receive data to.
@@ -119,6 +115,9 @@ extern "C"
 
         /** User data, which will be passed to user-defined callback as first argument */
         void *user_data;
+
+        /** mtu size, can be 0 */
+        int mtu;
     } hdlc_ll_init_t;
 
     //------------------------ GENERIC FUNCIONS ------------------------------
@@ -233,10 +232,11 @@ extern "C"
      *
      * @param mtu size of desired max payload in bytes
      * @param crc_type type of crc validation to use for the protocol
+     * @param rx_window number of RX frames in the RX ring buffer
      *
      * @return size of the buffer required
      */
-    int hdlc_ll_get_buf_size_ex(int mtu, hdlc_crc_t crc_type);
+    int hdlc_ll_get_buf_size_ex(int mtu, hdlc_crc_t crc_type, int rx_window);
 
     /**
      * @}
