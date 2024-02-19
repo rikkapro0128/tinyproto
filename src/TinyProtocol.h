@@ -59,7 +59,7 @@ namespace tinyproto
 class Proto
 {
 public:
-    Proto(bool multithread = false);
+    explicit Proto(bool multithread = false);
 
     ~Proto();
 
@@ -132,7 +132,7 @@ private:
 class SerialFdProto: public Proto
 {
 public:
-    SerialFdProto(HardwareSerial &port);
+    explicit SerialFdProto(HardwareSerial &port);
 
     ArduinoSerialFdLink &getLink();
 
@@ -143,7 +143,7 @@ private:
 class SerialHdlcProto: public Proto
 {
 public:
-    SerialHdlcProto(HardwareSerial &port);
+    explicit SerialHdlcProto(HardwareSerial &port);
 
     ArduinoSerialHdlcLink &getLink();
 
@@ -156,7 +156,7 @@ private:
 class SerialFdProto: public Proto
 {
 public:
-    SerialFdProto(char *dev, bool multithread = false);
+    explicit SerialFdProto(char *dev, bool multithread = false);
 
     SerialFdLink &getLink();
 
@@ -167,7 +167,7 @@ private:
 class SerialHdlcProto: public Proto
 {
 public:
-    SerialHdlcProto(char *dev, bool multithread = false);
+    explicit SerialHdlcProto(char *dev, bool multithread = false);
 
     SerialHdlcLink &getLink();
 

@@ -32,7 +32,7 @@ namespace tinyproto
 template <int MTU, int TX_WINDOW, int BUFFER_SIZE, int BLOCK> class StaticSerialFdLink: public ISerialLinkLayer<IFdLinkLayer, BLOCK>
 {
 public:
-    StaticSerialFdLink(char *dev)
+    explicit StaticSerialFdLink(char *dev)
         : ISerialLinkLayer<IFdLinkLayer, BLOCK>(dev, this->m_buffer, BUFFER_SIZE)
     {
         this->setMtu(MTU);
@@ -40,7 +40,7 @@ public:
     }
 
 private:
-    uint8_t m_buffer[BUFFER_SIZE];
+    uint8_t m_buffer[BUFFER_SIZE] = {};
 };
 
 
@@ -52,7 +52,7 @@ template <int MTU, int TX_WINDOW, int RX_WINDOW, int BLOCK> using ArduinoStaticS
 class ArduinoSerialFdLink: public ArduinoStaticSerialFdLinkLayer<32, 2, 2, 4>
 {
 public:
-    ArduinoSerialFdLink(HardwareSerial *dev)
+    explicit ArduinoSerialFdLink(HardwareSerial *dev)
         : ArduinoStaticSerialFdLinkLayer<32, 2, 2, 4>(reinterpret_cast<char *>(dev))
     {
     }
@@ -63,7 +63,7 @@ public:
 class SerialFdLink: public ISerialLinkLayer<IFdLinkLayer, 32>
 {
 public:
-    SerialFdLink(char *dev)
+    explicit SerialFdLink(char *dev)
         : ISerialLinkLayer<IFdLinkLayer, 32>(dev, nullptr, 0)
     {
     }

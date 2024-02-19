@@ -914,7 +914,7 @@ static uint8_t *tiny_fd_get_next_i_frame(tiny_fd_handle_t handle, int *len, uint
 
 static uint8_t *tiny_fd_get_next_frame_to_send(tiny_fd_handle_t handle, int *len, uint8_t peer)
 {
-    uint8_t *data = NULL;
+    uint8_t *data;
     // Tx data available
     tiny_mutex_lock(&handle->frames.mutex);
     const uint8_t address = __peer_to_address_field( handle, peer );
