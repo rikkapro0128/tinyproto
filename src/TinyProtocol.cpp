@@ -203,9 +203,11 @@ void Proto::onRead(uint8_t addr, uint8_t *buf, int len)
     IPacket * p = m_pool;
     if ( p == nullptr )
     {
+#if CONFIG_TINYHAL_THREAD_SUPPORT == 1
         // TODO: Lost frame
         m_lostRxFrames++;
         // printf("Lost -------------------- \n");
+#endif
     }
     else
     {

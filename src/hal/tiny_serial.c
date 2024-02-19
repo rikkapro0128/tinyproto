@@ -28,7 +28,7 @@
 
 #include "tiny_serial.h"
 
-#if defined(ARDUINO)
+#if defined(ARDUINO) || defined(__AVR__)
 
 #elif defined(__linux__)
 

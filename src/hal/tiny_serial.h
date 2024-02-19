@@ -47,7 +47,7 @@ extern "C"
      */
 
 #include <stdint.h>
-#if defined(ARDUINO)
+#if defined(ARDUINO) || defined(__AVR__)
 #include "arduino/arduino_serial.h"
 #elif defined(__linux__)
 #include "linux/linux_serial.h"
