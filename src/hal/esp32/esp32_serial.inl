@@ -51,20 +51,15 @@ void tiny_serial_close(tiny_serial_handle_t port)
 tiny_serial_handle_t tiny_serial_open(const char *name, uint32_t baud)
 {
     tiny_serial_handle_t handle = -1;
-    if ( !strcmp(name, "uart0") )
+    if ( strstr(name, "uart0") )
     {
         handle = UART_NUM_0;
     }
-    else if ( !strcmp(name, "uart1") )
+    else if ( strstr(name, "uart1") )
     {
         handle = UART_NUM_1;
     }
-#if !defined(ESP8266_DETECTED)
-    else if ( !strcmp(name, "uart2") )
-    {
-        handle = UART_NUM_2;
-    }
-#endif
+
     if ( handle < 0 )
     {
         return TINY_SERIAL_INVALID;
@@ -82,13 +77,9 @@ tiny_serial_handle_t tiny_serial_open(const char *name, uint32_t baud)
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
         .rx_flow_ctrl_thresh = 0,
-#if !defined(ESP8266_DETECTED)
-        .use_ref_tick = false,
-    //        .source_clk = 0, // APB
-#endif
     };
 
-    char* params = strdup(name);
+    char *params = strdup(name);
     char *token = strtok(params, ",");
     int index = 0;
     while ( token )
@@ -111,7 +102,7 @@ tiny_serial_handle_t tiny_serial_open(const char *name, uint32_t baud)
     ESP_ERROR_CHECK(uart_param_config(handle, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(handle, tx_gpio, rx_gpio, rts_gpio, cts_gpio));
     //                                  uart,   rx size,     tx size, event queue size, queue, flags
-    ESP_ERROR_CHECK(uart_driver_install(handle, BUFSIZE, 0, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_driver_install(handle, BUFSIZE * 2, 0, 0, NULL, 0));
 
     return handle;
 }
@@ -157,5 +148,3 @@ int tiny_serial_read_timeout(tiny_serial_handle_t port, void *buf, int len, uint
 {
     return uart_read_bytes(port, (uint8_t *)buf, len, timeout_ms / portTICK_PERIOD_MS);
 }
-
-

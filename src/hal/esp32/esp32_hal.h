@@ -32,6 +32,8 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "freertos/event_groups.h"
+#include "driver/uart.h"
+#include "esp_timer.h"
 
 #ifndef CONFIG_ENABLE_CHECKSUM
 #define CONFIG_ENABLE_CHECKSUM
